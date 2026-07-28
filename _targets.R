@@ -1678,7 +1678,8 @@ tar_target(
     complex_care_client = complex_care_client_raw,
     complex_care_roster = complex_care_roster_raw,
     complex_care_clinical_notes = complex_care_clinical_notes_raw,
-    complex_care_mercy_beacn_benchmarks = complex_care_mercy_beacn_benchmarks_raw,
+    complex_care_mercy_beacn_benchmarks = 
+      complex_care_mercy_beacn_benchmarks_raw,
     complex_care_pfp_discharge = complex_care_pfp_discharge_raw,
     complex_care_quality_of_life = complex_care_quality_of_life_raw,
     complex_care_shelter_beds = complex_care_shelter_beds_raw,
@@ -1686,10 +1687,14 @@ tar_target(
     complex_care_all_payor_source = complex_care_all_payor_source_raw,
     complex_care_active_housing = complex_care_active_housing_raw,
     complex_care_all_housing = complex_care_all_housing_raw,
-    complex_care_ext_mercy_utilization = complex_care_ext_mercy_utilization_raw,
+    complex_care_ext_mercy_utilization =
+      complex_care_ext_mercy_utilization_raw,
+    complex_care_ext_mercy_utilization_transformed =
+      complex_care_ext_mercy_utilization_transformed,
     complex_care_ext_atd_notifications = complex_care_ext_atd_notifications_raw,
     complex_care_ext_atd_watchlist = complex_care_ext_atd_watchlist_raw,
-    complex_care_ext_pfp_service_history = complex_care_ext_pfp_service_history_raw
+    complex_care_ext_pfp_service_history = 
+      complex_care_ext_pfp_service_history_raw
   )
  ),
  
@@ -1772,6 +1777,28 @@ tar_target(
     )
   ),
  
+  # ===
+  # Standalone EXT Asset Transformation Targets ----
+  # ===
+  
+  ## BCR ----
+
+  ## Complex Care ----
+  tar_target(
+    complex_care_ext_mercy_utilization_transformed,
+    transform_complex_care_ext_mercy_utilization(
+      df_raw = complex_care_ext_mercy_utilization_raw,
+      complex_care_paths = complex_care_paths,
+      ccsr_dx_lut = ccsr_dx_lut
+    )
+  ),
+
+  ## EPICC ----
+  
+  ## ERE ----
+
+  ## YERE ----
+
   # ===
   # Referral Flow Targets (required by diagnostics) ----
   # ===
