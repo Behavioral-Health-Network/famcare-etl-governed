@@ -422,32 +422,15 @@ load_complex_care_all_housing <- function(
 # ===
 # Ingest complex_care_ext_mercy_utilization ----
 #   - multiple rows per mrn
-#   - Unlike other loaders, this one extracts the date from the file name
 # ===
 load_complex_care_ext_mercy_utilization <- function(
     complex_care_paths,
     analytic_fields
 ) {
-  
-  df <- load_famcare_extract(
+  load_famcare_extract(
     path = complex_care_paths$complex_care_ext_mercy_utilization,
     analytic_fields = analytic_fields
   )
-  
-  # Extract YYYYMMDD from filename
-  date_created <- ymd(
-    stringr::str_extract(
-      complex_care_paths$complex_care_ext_mercy_utilization,
-      "\\d{8}"
-    )
-  )
-  
-  df <- df |>
-    mutate(
-      date_created = date_created
-      )
-  
-  df
 }
 
 # ===
@@ -704,7 +687,350 @@ transform_complex_care_pathclient <- function(
 }
 
 # ===
-## 3b. Transform referral flow ----
+## 3b. Transform Mercy Utilization ----
+# ===
+transform_complex_care_ext_mercy_utilization <- function(
+    df_raw,
+    complex_care_paths,
+    ccsr_dx_lut
+    ) {
+  
+  # Extract YYYYMMDD from filename
+  date_created <- ymd(
+    stringr::str_extract(
+      complex_care_paths$complex_care_ext_mercy_utilization,
+      "\\d{8}"
+    )
+  )
+  
+  # ===
+  # 1. Filter Outpatient rows; retain encounter level; mutate new cols ----
+  # ===
+  df1 <- df_raw |>
+    mutate(
+      age_at_admission = floor(
+        interval(
+          birth_date,
+          adm_date_time
+        ) / years(
+          1
+        )
+      )
+    ) |> 
+    filter(
+      age_at_admission >= 18,
+      patient_class != "Outpatient"
+    ) |> 
+    mutate(
+      date_created = date_created,
+      ed_visit = case_when(
+        patient_class == "Emergency" ~ 1,
+        .default = 0
+      ),
+      inpatient_visit = case_when(
+        patient_class == "Inpatient" ~ 1,
+        .default = 0
+      ),
+      admission_year = year(
+        adm_date_time
+        ),
+      fiscal_year_admission = as.integer(
+        quarter(
+          adm_date_time,
+          with_year = TRUE,
+          fiscal_start = 7
+          )
+        )
+      ) |> 
+    mutate(
+      across(
+        c(
+          external_dx_id,
+          external_dx_id_2,
+          external_dx_id_3
+          ),
+        ~ str_replace_all(
+          .,
+          "[.]",
+          ""
+          )
+        )
+      ) |> 
+    rename(
+      external_dx_id_1 = external_dx_id,
+      dx_name_1 = dx_name
+      )
+  
+  # ===
+  # 2. Define SUD Category codes (CMS default CCSR categories) ----
+  # ===
+  sud_codes <- c(
+    "MBD017",
+    "MBD018",
+    "MBD019",
+    "MBD020",
+    "MBD021",
+    "MBD022",
+    "MBD023",
+    "MBD025"
+  )
+  
+  # ===
+  # 3. Pivot ICD-10 codes long ----
+  # ===
+  dx_long <- df1 |> 
+    select(
+      pat_mrn_id,
+      adm_date_time,
+      disch_date_time,
+      dx_name_1,
+      dx_name_2,
+      dx_name_3,
+      external_dx_id_1,
+      external_dx_id_2,
+      external_dx_id_3
+    ) |> 
+    pivot_longer(
+      cols = c(
+        external_dx_id_1,
+        external_dx_id_2,
+        external_dx_id_3
+        ),
+      names_to = "dx_position",
+      values_to = "icd10"
+      ) |> 
+    mutate(
+      dx_name_long = case_when(
+        dx_position == "external_dx_id_1" ~ dx_name_1,
+        dx_position == "external_dx_id_2" ~ dx_name_2,
+        dx_position == "external_dx_id_3" ~ dx_name_3,
+        .default = NA_character_
+      )
+    ) |>
+    left_join(
+      ccsr_dx_lut,
+      by = join_by(
+        icd10 == icd_10_cm_code
+        )
+      ) |> 
+    mutate(
+      ccsr_prefix = substr(
+        default_ccsr_category_ip,
+        1,
+        3
+        )
+      ) |> 
+    mutate(
+      # MBD classification: prefix of default CCSR category
+      is_mbd = ccsr_prefix == "MBD",
+      # SUD classification: specific default CCSR categories
+      is_sud = default_ccsr_category_ip %in% sud_codes
+      )
+
+  # ===
+  # 4. Encounter-level flags ----
+  # ===
+  encounter_flags <- dx_long |>
+    arrange(
+      pat_mrn_id,
+      adm_date_time,
+      disch_date_time
+    ) |> 
+    group_by(
+      pat_mrn_id,
+      adm_date_time,
+      disch_date_time
+      ) |>
+    summarize(
+      mbd_encounter_flag = as.integer(
+        any(
+          is_mbd,
+          na.rm = TRUE
+          )
+        ),
+      sud_encounter_flag = as.integer(
+        any(
+          is_sud,
+          na.rm = TRUE
+          )
+        ),
+      mbd_dx_name = first(
+        dx_name_long[is_mbd]
+        ),
+      sud_dx_name = first(
+        dx_name_long[is_sud]
+        ),
+      .groups = "drop"
+    )
+  
+  # ===
+  # 5. Patient-level flags ----
+  # ===
+  patient_flags <- dx_long |>
+    group_by(
+      pat_mrn_id
+      ) |>
+    summarize(
+      mbd_patient_flag = as.integer(
+        any(
+          is_mbd,
+          na.rm = TRUE
+          )
+        ),
+      sud_patient_flag = as.integer(
+        any(
+          is_sud,
+          na.rm = TRUE
+          )
+        ),
+      .groups = "drop"
+    )
+  
+  # ===
+  # 6. ED 30-Day Return Logic (groups by patient only) ----
+  # ===
+  ed_returns <- df1 |>
+    filter(
+      ed_visit == 1
+      ) |>
+    arrange(
+      pat_mrn_id,
+      adm_date_time
+      ) |>
+    group_by(
+      pat_mrn_id
+      ) |>
+    mutate(
+      prior_ed_disch = lag(
+        disch_date_time
+        ),
+      prior_ed_30day = lag(
+        disch_date_time + days(
+          30
+          )
+        ),
+      ed_return_gap = as.numeric(
+        difftime(
+          adm_date_time,
+          prior_ed_disch,
+          units = "days"
+          )
+        ),
+      ed_30day_return_flag = as.integer(
+        !is.na(
+          prior_ed_disch
+          ) &
+          adm_date_time > prior_ed_disch &
+          adm_date_time <= prior_ed_30day &
+          ed_return_gap >= 0 &
+          ed_return_gap <= 30
+      )
+    ) |>
+    ungroup() |>
+    select(
+      pat_mrn_id,
+      adm_date_time,
+      ed_30day_return_flag
+      )
+  
+  # ===
+  # 7. IP 30-Day Return Logic (groups by patient only) ----
+  # ===
+  ip_returns <- df1 |>
+    filter(
+      inpatient_visit == 1
+      ) |>
+    arrange(
+      pat_mrn_id,
+      adm_date_time
+      ) |>
+    group_by(
+      pat_mrn_id
+      ) |>
+    mutate(
+      prior_ip_disch = lag(
+        disch_date_time
+        ),
+      prior_ip_30day = lag(
+        disch_date_time + days(
+          30
+          )
+        ),
+      ip_return_gap = as.numeric(
+        difftime(
+          adm_date_time,
+          prior_ip_disch,
+          units = "days"
+          )
+        ),
+      ip_30day_return_flag = as.integer(
+        !is.na(
+          prior_ip_disch
+          ) &
+          adm_date_time > prior_ip_disch &
+          adm_date_time <= prior_ip_30day &
+          ip_return_gap >= 0 &
+          ip_return_gap <= 30
+        )
+      ) |>
+    ungroup() |>
+    select(
+      pat_mrn_id,
+      adm_date_time,
+      ip_30day_return_flag
+      )
+  
+  # dupe <- df1 |> 
+  #   count(pat_mrn_id, adm_date_time) |> 
+  #   filter(n > 1)
+  
+  
+  # ===
+  # 8. Join ED/IP return flags back to df1 ----
+  # ===
+  df_final <- df1 |>
+    left_join(
+      encounter_flags,
+        by = c(
+          "pat_mrn_id",
+          "adm_date_time",
+          "disch_date_time"
+        )
+      ) |>
+    left_join(
+      patient_flags,
+      by = "pat_mrn_id"
+      ) |>
+    left_join(
+      ed_returns,
+      by = c(
+        "pat_mrn_id",
+        "adm_date_time"
+        )
+      ) |>
+    left_join(
+      ip_returns,
+      by = c(
+        "pat_mrn_id",
+        "adm_date_time"
+        )
+      ) |>
+    mutate(
+      ed_30day_return_flag = replace_na(
+        ed_30day_return_flag,
+        0
+        ),
+      ip_30day_return_flag = replace_na(
+        ip_30day_return_flag,
+        0
+        )
+    )
+  
+  df_final
+}
+
+# ===
+## 3c. Transform Referral Flow ----
 #   - Joins REF, IC, RP
 #   - Prefixes all columns except tiedenrollment
 #   - Joins SCD summation tables (presconcerns, payor, housing) to ALL parent
@@ -1013,7 +1339,6 @@ transform_complex_care_referral_flow <- function(
   # Store the final joined referral flow table
   output <- list(
     scd = list(
-      # ccnotes_one  = ccnotes_one,
       shelter_beds_one = shelter_beds_one,
       qol_one = qol_one,
       payor_one   = payor_one,
@@ -1028,7 +1353,8 @@ transform_complex_care_referral_flow <- function(
     ),
     joined_referral_flow = joined,
     
-    ext_mercy_utilization = complex_care$complex_care_ext_mercy_utilization,
+    ext_mercy_utilization = 
+      complex_care$complex_care_ext_mercy_utilization_transformed,
     ext_atd_notifications = complex_care$complex_care_ext_atd_notifications,
     ext_atd_watchlist = complex_care$complex_care_ext_atd_watchlist,
     ext_pfp_service_history = complex_care$complex_care_ext_pfp_service_history
@@ -1042,7 +1368,7 @@ transform_complex_care_referral_flow <- function(
 }
 
 # ===
-## 3c. Transform alert watchlist ----
+## 3d. Transform Alert Watchlist ----
 #   - builds a tibble but does not perform file writes, are handled by
 #       {targets}
 # ===
@@ -1237,7 +1563,8 @@ run_complex_care_etl <- function(
   complex_care_all_payor_source,
   complex_care_active_housing,
   complex_care_all_housing,
-  complex_care_ext_mercy_utilization,
+  complex_care_ext_mercy_utilization_raw,
+  complex_care_ext_mercy_utilization_transformed,
   complex_care_ext_atd_notifications,
   complex_care_ext_atd_watchlist,
   complex_care_ext_pfp_service_history,
@@ -1283,12 +1610,21 @@ run_complex_care_etl <- function(
     complex_care_all_payor_source = complex_care_all_payor_source,
     complex_care_active_housing = complex_care_active_housing,
     complex_care_all_housing = complex_care_all_housing,
-    complex_care_ext_mercy_utilization = complex_care_ext_mercy_utilization,
+    # Both raw and transformed Mercy utilization are included here
+    # intentionally. complex_care_raw is a *staging list* passed to downstream
+    # transforms. transform_complex_care_referral_flow() selects the transformed
+    # tibble for its structured output (ext_mercy_utilization), while the raw
+    # tibble is preserved under raw$complex_care_ext_mercy_utilization_raw in
+    # the ETL output.
+    complex_care_ext_mercy_utilization_raw = 
+      complex_care_ext_mercy_utilization_raw,
+    complex_care_ext_mercy_utilization_transformed = 
+      complex_care_ext_mercy_utilization_transformed,
     complex_care_ext_atd_notifications = complex_care_ext_atd_notifications,
     complex_care_ext_atd_watchlist = complex_care_ext_atd_watchlist,
     complex_care_ext_pfp_service_history = complex_care_ext_pfp_service_history
   )
-
+  
   # ===
   # 2. Transformations
   # ===
@@ -1327,7 +1663,19 @@ run_complex_care_etl <- function(
   # 3. Return structured object
   # ===
   list(
-    raw = complex_care_raw,
+    raw = complex_care_raw[
+      setdiff(
+        names(complex_care_raw),
+        "complex_care_ext_mercy_utilization_transformed"
+      )
+    ],
+    # Note: complex_care_raw is a staging list used by downstream transforms and
+    # therefore contains both raw and transformed versions of some extracts. For
+    # the final structured ETL output, raw should include *only* the ingested
+    # raw objects. We explicitly remove the transformed Mercy utilization tibble
+    # here to preserve the raw/transform hierarchy in the ETL output while still
+    # keeping the transformed tibble available in the staging list for
+    # referral_flow().
     transform  = list(
       pathclient = pathclient,
       referral_flow = referral_flow
