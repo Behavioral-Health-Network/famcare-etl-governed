@@ -497,6 +497,26 @@ transform_bcr_pathclient <- function(
       .keep_all = TRUE
     )
 
+  enrollment <-  enrollment |>
+    mutate(
+      month_year_referral_full  = month_year_label_full(
+        enrollment_starting_date
+        ),
+      month_year_referral_abbrev = month_year_label_abbrev(
+        enrollment_starting_date
+        )
+    ) |>
+    order_fiscal_year_labels(
+      month_year_referral_full,
+      enrollment_starting_date,
+      "state"
+      ) |>
+    order_fiscal_year_labels(
+      month_year_referral_abbrev,
+      enrollment_starting_date,
+      "state"
+      )
+  
   # Merge client demographics
   enrollment <- enrollment |>
     dplyr::left_join(

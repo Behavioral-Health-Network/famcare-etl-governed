@@ -567,7 +567,23 @@ make_path <- function(
 }
 
 # ===
-# 9. Latest-file make path helper when rolling datetimes are appended ----
+# 9. make_lut_path helper ----
+# ===
+p_lut_path <- "P:/DATA/LUTs/"
+
+make_lut_path <- function(
+    ...,
+    base = p_lut_path
+    ) {
+  file.path(
+    base,
+    ...,
+    fsep = "/"
+    )
+}
+
+# ===
+# 10. Latest-file make path helper when rolling datetimes are appended ----
 # ===
 
 # p_path is defined in make_path() above.
@@ -608,7 +624,7 @@ make_latest_file_path <- function(
 }
 
 # ===
-# 10. read all files and bind function ----
+# 11. Read all files and bind function ----
 # ===
 
 # p_path is defined in make_path() above.
@@ -648,7 +664,7 @@ make_all_file_paths <- function(
 }
 
 # ===
-# 11. encoding detection function ----
+# 12. Encoding detection function ----
 # ===
 detect_encoding <- function(
     path
@@ -663,7 +679,7 @@ detect_encoding <- function(
 }
 
 # ===
-# 12. normalize field name function ----
+# 13. Normalize field name function ----
 # ===
 normalize_field_name <- function(
     x
@@ -685,7 +701,7 @@ normalize_field_name <- function(
 }
 
 # ===
-# 13. read FAMCare CSV wrapper ----
+# 14. Read FAMCare CSV wrapper ----
 # ===
 read_famcare_csv <- function(
   path,
@@ -787,7 +803,7 @@ read_famcare_csv <- function(
 }
 
 # ===
-# 14. read FAMCare Excel wrapper ----
+# 15. Read FAMCare Excel wrapper ----
 # ===
 read_famcare_excel <- function(
   path,
@@ -805,7 +821,7 @@ read_famcare_excel <- function(
 }
 
 # ===
-# 15. Load analytic_fields metadata from governance workbook ----
+# 16. Load analytic_fields metadata from governance workbook ----
 #   - Reads Excel file defined by METADATA_GOVERNANCE_DIR
 #   - Cleans column names
 #   - Used by all program ETL scripts
@@ -849,7 +865,7 @@ load_analytic_fields <- function() {
 }
 
 # ===
-# 16. Normalize CSV filename → asset_id used in analytic_fields ----
+# 17. Normalize CSV filename → asset_id used in analytic_fields ----
 # Example:
 #   Q_PROVIDERPLACEMENT_BHN.csv → q-providerplacement-bhn
 # ===
@@ -944,7 +960,7 @@ extract_asset_id <- function(
 }
 
 # ===
-# 17. Slice analytic_fields for a specific asset_id ----
+# 18. Slice analytic_fields for a specific asset_id ----
 #   - Ensures each extract uses the correct metadata subset
 # ===
 
@@ -967,7 +983,7 @@ slice_metadata <- function(
 }
 
 # ===
-# 18. Generic metadata-driven ingestion for any FAMCare extract ----
+# 19. Generic metadata-driven ingestion for any FAMCare extract ----
 #   - Normalizes asset_id
 #   - Slices metadata from <- table
 #   - Reads CSV using read_famcare_csv()
@@ -1006,14 +1022,14 @@ load_famcare_extract <- function(
     )
   }
 
-  # ---- Detect file extension ----
+  # a. Detect file extension ----
   ext <- tolower(
     tools::file_ext(
       path
     )
   )
 
-  # 1. Dispatch to appropriate reader for ingestion ----
+  # b. Dispatch to appropriate reader for ingestion ----
   df <- switch(
     ext,
     "csv" = read_famcare_csv(
@@ -1034,7 +1050,7 @@ load_famcare_extract <- function(
     )
   )
 
-  # 2. Identify governed date columns from metadata in analytic_fields.
+  # c. Identify governed date columns from metadata in analytic_fields ----
   date_cols <- metadata |>
     dplyr::filter(
       data_type == "date"
@@ -1044,7 +1060,7 @@ load_famcare_extract <- function(
     ) |>
     tolower()
 
-  # 3. Apply safe date parsing to all governed date columns.
+  # d. Apply safe date parsing to all governed date columns ----
   if (
     length(
       date_cols
@@ -1061,7 +1077,7 @@ load_famcare_extract <- function(
       )
   }
 
-  # 4. Identify governed datetime columns from metadata in analytic_fields.
+  # e. Identify governed datetime columns from metadata in analytic_fields ----
   datetime_cols <- metadata |>
     dplyr::filter(
       data_type == "datetime"
@@ -1071,7 +1087,7 @@ load_famcare_extract <- function(
       ) |>
     tolower()
   
-  # 5. Apply safe datetime parsing to all governed datetime columns.
+  # f. Apply safe datetime parsing to all governed datetime columns ----
   if (
     length(
       datetime_cols
@@ -1092,7 +1108,133 @@ load_famcare_extract <- function(
 }
 
 # ===
-# 19. Program-agnostic data subset function for use in parent projects ----
+# 20. Metadata-driven ingestion for EXT ETO Excel extracts ----
+#   - Uses analytic_fields
+#   - Normalizes column headers first
+#   - Applies governed data types
+#   - Applies governed date/datetime parsing
+#   - Performs NO FAMCare-specific transformations
+# ===
+
+load_ext_eto_extract <- function(
+    path,
+    analytic_fields
+) {
+  
+  asset_id <- extract_asset_id(
+    path,
+    analytic_fields
+  )
+  
+  metadata <- slice_metadata(
+    analytic_fields,
+    asset_id
+  )
+  
+  if (
+    nrow(
+      metadata
+      ) == 0
+    ) {
+    stop(
+      "No metadata found for asset_id: ",
+      asset_id
+      )
+  }
+  
+  # a. read header only, normalize names ---
+  header <- names(
+    readr::read_csv(
+      path,
+      n_max = 0,
+      show_col_types = FALSE
+    )
+  )
+  
+  header_norm <- normalize_field_name(
+    header
+    )
+  
+  # b. Generate governed col_types using normalized header ---
+  col_types <- generate_col_types(
+    colnames = header_norm,
+    metadata = metadata
+  )
+  
+  # c. force all governed date/datetime columns to character ---
+  col_types <- chartr(
+    "D",
+    "c",
+    col_types
+    )
+  
+  # d. Read full CSV using governed types ---
+  df <- readr::read_csv(
+    file = path,
+    col_types = col_types
+  )
+  
+  # e. Clean names (same as FAMCare asset ingestion) ---
+  df <- df |> janitor::clean_names()
+  
+  # f. Governed date columns ---
+  date_cols <- metadata |>
+    dplyr::filter(
+      data_type == "date"
+      ) |>
+    dplyr::pull(
+      field_name
+      ) |>
+    tolower()
+  
+  if (
+    length(
+      date_cols
+      ) > 0
+    ) {
+    df <- df |>
+      dplyr::mutate(
+        dplyr::across(
+          tidyselect::all_of(
+            date_cols
+            ),
+          parse_date_safe
+        )
+      )
+  }
+  
+  # g. Governed datetime columns ---
+  datetime_cols <- metadata |>
+    dplyr::filter(
+      data_type == "datetime"
+      ) |>
+    dplyr::pull(
+      field_name
+      ) |>
+    tolower()
+  
+  if (
+    length(
+      datetime_cols
+      ) > 0
+    ) {
+    df <- df |>
+      dplyr::mutate(
+        dplyr::across(
+          tidyselect::all_of(
+            datetime_cols
+            ),
+          parse_datetime_safe
+        )
+      )
+  }
+  
+  df
+}
+
+
+# ===
+# 21. Program-agnostic data subset function for use in parent projects ----
 #   - Fiscal period-neutral (meaning federal or state fiscal systems)
 # ===
 
@@ -1137,7 +1279,7 @@ build_subsets <- function(
 }
 
 # ===
-# 20. Complex Care data subset function for use in parent projects ----
+# 22. Complex Care data subset function for use in parent projects ----
 #   - Fiscal period-neutral (meaning federal or state fiscal systems)
 # ===
 build_complex_care_subsets <- function(
@@ -1236,7 +1378,7 @@ build_complex_care_subsets <- function(
 }
 
 # ===
-# 21. Diagnostic helper functions ----
+# 23. Diagnostic helper functions ----
 # ===
 
 # Adds function to ensure that <program>_pathclient and <program>_full_data both
@@ -1473,7 +1615,7 @@ check_parent_form_alignment <- function(
 }  
 
 # ===
-# 20. VPN / shared drive check ----
+# 24. VPN / shared drive check ----
 # ===
 
 check_vpn <- function(

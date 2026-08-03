@@ -18,7 +18,7 @@ source("etl/complex_care.R")   # complex_care_paths, run_complex_care_etl()
 # ===
 # Global options ----
 # ===
-tar_option_set(
+targets::tar_option_set(
  packages = c(
   "dplyr",
   "readr",
@@ -39,7 +39,7 @@ list(
  # VPN Check ----
  # ===
  
- tar_target(
+ targets::tar_target(
   vpn_check,
   { 
    check_vpn(
@@ -53,7 +53,7 @@ list(
  # Metadata ----
  # ===
  
- tar_target(
+ targets::tar_target(
   metadata_workbook,
   file.path(
     Sys.getenv(
@@ -68,7 +68,7 @@ list(
  #   Force readxl::read_excel() to apply the correct col_types and not guess so
  #   it does not class source_pattern as logical due to blank rows. Add
  #   additional col_types in order as new columns are added.
- tar_target(
+ targets::tar_target(
    analytic_fields_raw,
    readxl::read_excel(
      metadata_workbook,
@@ -95,7 +95,7 @@ list(
  ),
 
  # 2. Write that tibble to a persistent CSV inside _targets/
- tar_target(
+ targets::tar_target(
   analytic_fields_csv,
   {
    csv_path <- file.path(
@@ -120,13 +120,13 @@ list(
    csv_path
   },
   format = "file",
-  cue = tar_cue(
+  cue = targets::tar_cue(
     file = TRUE
     )
  ),
  
  # 3. Read the CSV back in with explicit col_types
- tar_target(
+ targets::tar_target(
   analytic_fields,
   readr::read_delim(
    analytic_fields_csv,
@@ -153,7 +153,7 @@ list(
  # Cartography targets ----
  # ===
  
- tar_target(
+ targets::tar_target(
   cartography_bundle,
   {
     vpn_check
@@ -165,7 +165,7 @@ list(
  # CCSR diagnosis LUT targets ----
  # ===
  
- tar_target(
+ targets::tar_target(
   ccsr_dx_lut,
   {
     vpn_check
@@ -174,12 +174,27 @@ list(
  ),
  
  # ===
- # Add extract file targets ----
+ # PCC notification facilities LUT target ----
+ # ===
+ 
+ tar_target(
+   complex_care_ext_pcc_facility_lut_file,
+   {
+     vpn_check
+     return(
+       complex_care_paths$complex_care_ext_pcc_facility_lut
+       )
+   },
+   format = "file"
+ ),
+ 
+ # ===
+ # Add extract FILE targets ----
  # ===
  
  ## BCR ----
  
- tar_target(
+ targets::tar_target(
    bcr_provider_placement_file,
    {
      vpn_check
@@ -188,7 +203,7 @@ list(
    format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_pathclient_file,
    {
      vpn_check
@@ -197,7 +212,7 @@ list(
    format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_pathway_docsernos_file,
    {
      vpn_check
@@ -206,7 +221,7 @@ list(
    format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_client_file,
    {
      vpn_check
@@ -215,7 +230,7 @@ list(
    format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_ref_file,
    {
      vpn_check
@@ -224,7 +239,7 @@ list(
    format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_ic_file,
    {
      vpn_check
@@ -233,7 +248,7 @@ list(
    format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_referrals_placed_file,
    {
      vpn_check
@@ -242,7 +257,7 @@ list(
    format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_presenting_concerns_file,
    {
      vpn_check
@@ -251,7 +266,7 @@ list(
    format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_events_file,
    {
      vpn_check
@@ -260,7 +275,7 @@ list(
    format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_client_counseling_sessions_file,
    {
      vpn_check
@@ -269,7 +284,7 @@ list(
    format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_active_payor_source_file,
    {
      vpn_check
@@ -278,7 +293,7 @@ list(
    format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_all_payor_source_file,
    {
      vpn_check
@@ -287,7 +302,7 @@ list(
    format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_active_housing_file,
    {
      vpn_check
@@ -296,7 +311,7 @@ list(
    format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_all_housing_file,
    {
      vpn_check
@@ -307,7 +322,7 @@ list(
  
  ## Complex Care ----
  
- tar_target(
+ targets::tar_target(
   complex_care_provider_placement_file,
   {
     vpn_check
@@ -316,7 +331,7 @@ list(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_pathclient_file,
   {
     vpn_check
@@ -325,7 +340,7 @@ list(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_pathway_docsernos_file,
   {
     vpn_check
@@ -334,7 +349,7 @@ list(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_client_file,
   {
     vpn_check
@@ -343,7 +358,7 @@ list(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_roster_file,
   {
     vpn_check
@@ -352,7 +367,7 @@ list(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_clinical_notes_file,
   {
     vpn_check
@@ -361,7 +376,7 @@ list(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_mercy_beacn_benchmarks_file,
   {
     vpn_check
@@ -370,7 +385,7 @@ list(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_pfp_discharge_file,
   {
     vpn_check
@@ -379,7 +394,7 @@ list(
   format = "file"
  ),
 
- tar_target(
+ targets::tar_target(
   complex_care_quality_of_life_file,
   {
     vpn_check
@@ -388,7 +403,7 @@ list(
   format = "file"
  ),
 
- tar_target(
+ targets::tar_target(
   complex_care_shelter_beds_file,
   {
     vpn_check
@@ -397,7 +412,7 @@ list(
   format = "file"
  ),
 
- tar_target(
+ targets::tar_target(
   complex_care_active_payor_source_file,
   {
     vpn_check
@@ -406,7 +421,7 @@ list(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_all_payor_source_file,
   {
     vpn_check
@@ -415,7 +430,7 @@ list(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_active_housing_file,
   {
     vpn_check
@@ -424,7 +439,7 @@ list(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_all_housing_file,
   {
     vpn_check
@@ -433,7 +448,7 @@ list(
   format = "file"
  ),
 
- tar_target(
+ targets::tar_target(
   complex_care_ext_mercy_utilization_file,
   {
     vpn_check
@@ -442,7 +457,7 @@ list(
   format = "file"
 ),
 
- tar_target(
+ targets::tar_target(
    complex_care_ext_atd_notifications_file,
    {
      vpn_check
@@ -451,16 +466,7 @@ list(
    format = "file"
 ),
 
-tar_target(
-  complex_care_ext_atd_watchlist_file,
-  {
-    vpn_check
-    complex_care_paths$complex_care_ext_atd_watchlist
-  },
-  format = "file"
-),
-
-tar_target(
+targets::tar_target(
   complex_care_ext_pfp_service_history_file,
   {
     vpn_check
@@ -469,9 +475,27 @@ tar_target(
   format = "file"
 ),
 
+targets::tar_target(
+  complex_care_ext_pfp_metrics_legacy_file,
+  {
+    vpn_check
+    complex_care_paths$complex_care_ext_pfp_metrics_legacy
+  },
+  format = "file"
+),
+
+targets::tar_target(
+  complex_care_ext_eto_roster_file,
+  {
+    vpn_check
+    complex_care_paths$complex_care_ext_eto_roster
+  },
+  format = "file"
+),
+
  ## EPICC ----
  
- tar_target(
+ targets::tar_target(
   epicc_provider_placement_file,
   {
     vpn_check
@@ -480,7 +504,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_pathclient_file,
   {
     vpn_check
@@ -489,7 +513,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_pathway_docsernos_file,
   {
     vpn_check
@@ -498,7 +522,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_client_file,
   {
     vpn_check
@@ -507,7 +531,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_ref_file,
   {
     vpn_check
@@ -516,7 +540,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_ic_file,
   {
     vpn_check
@@ -525,7 +549,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_two_week_file,
   {
     vpn_check
@@ -534,7 +558,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_thirty_day_file,
   {
     vpn_check
@@ -543,7 +567,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_three_month_file,
   {
     vpn_check
@@ -552,7 +576,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_six_month_file,
   {
     vpn_check
@@ -561,7 +585,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_reengagement_file,
   {
     vpn_check
@@ -570,7 +594,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_active_intake_file,
   {
     vpn_check
@@ -579,7 +603,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_all_intake_file,
   {
     vpn_check
@@ -588,7 +612,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_active_payor_source_file,
   {
     vpn_check
@@ -597,7 +621,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_all_payor_source_file,
   {
     vpn_check
@@ -606,7 +630,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_active_housing_file,
   {
     vpn_check
@@ -615,7 +639,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_all_housing_file,
   {
     vpn_check
@@ -624,7 +648,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_case_notes_file,
   {
     vpn_check
@@ -633,7 +657,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_support_services_tracker_file,
   {
     vpn_check
@@ -644,7 +668,7 @@ tar_target(
  
  ## ERE ----
  
- tar_target(
+ targets::tar_target(
   ere_provider_placement_file,
   {
     vpn_check
@@ -653,7 +677,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_pathclient_file,
   {
     vpn_check
@@ -662,7 +686,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_pathway_docsernos_file,
   {
     vpn_check
@@ -671,7 +695,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_client_file,
   {
     vpn_check
@@ -680,7 +704,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_ref_file,
   {
     vpn_check
@@ -689,7 +713,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_hosp_visit_file,
   {
     vpn_check
@@ -698,7 +722,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_ihna_file,
   {
     vpn_check
@@ -707,7 +731,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_three_month_file,
   {
     vpn_check
@@ -716,7 +740,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_six_month_file,
   {
     vpn_check
@@ -725,7 +749,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_bhs_file,
   {
     vpn_check
@@ -734,7 +758,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_active_payor_source_file,
   {
     vpn_check
@@ -743,7 +767,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_all_payor_source_file,
   {
     vpn_check
@@ -752,7 +776,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_active_housing_file,
   {
     vpn_check
@@ -761,7 +785,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_all_housing_file,
   {
     vpn_check
@@ -770,7 +794,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   ere_client_needs_file,
   {
     vpn_check
@@ -781,7 +805,7 @@ tar_target(
  
  ## YERE ----
  
- tar_target(
+ targets::tar_target(
   yere_provider_placement_file,
   {
     vpn_check
@@ -790,7 +814,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_pathclient_file,
   {
     vpn_check
@@ -799,7 +823,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_pathway_docsernos_file,
   {
     vpn_check
@@ -808,7 +832,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_client_file,
   {
     vpn_check
@@ -817,7 +841,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_ref_file,
   {
     vpn_check
@@ -826,7 +850,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_hosp_visit_file,
   {
     vpn_check
@@ -835,7 +859,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_ia_file,
   {
     vpn_check
@@ -844,7 +868,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_thirty_day_file,
   {
     vpn_check
@@ -853,7 +877,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_three_month_file,
   {
     vpn_check
@@ -862,7 +886,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_six_month_file,
   {
     vpn_check
@@ -871,7 +895,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_bhs_file,
   {
     vpn_check
@@ -880,7 +904,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_active_payor_source_file,
   {
     vpn_check
@@ -889,7 +913,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_all_payor_source_file,
   {
     vpn_check
@@ -898,7 +922,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_active_housing_file,
   {
     vpn_check
@@ -907,7 +931,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_all_housing_file,
   {
     vpn_check
@@ -916,7 +940,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_client_needs_file,
   {
     vpn_check
@@ -925,7 +949,7 @@ tar_target(
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   yere_caregiver_needs_file,
  {
     vpn_check
@@ -934,7 +958,7 @@ tar_target(
   format = "file"
  ),
 
- tar_target(
+ targets::tar_target(
    yere_client_family_needs_file,
    {
      vpn_check
@@ -944,12 +968,12 @@ tar_target(
  ),
  
  # ===
- # Adds raw-read targets that depend on file targets ----
+ # Adds RAW-read targets that depend on file targets ----
  # ===
  
  ## BCR ----
  
- tar_target(
+ targets::tar_target(
    bcr_provider_placement_raw,
    load_famcare_extract(
      path = bcr_provider_placement_file,
@@ -957,7 +981,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_pathclient_raw,
    load_famcare_extract(
      path = bcr_pathclient_file,
@@ -965,7 +989,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_pathway_docsernos_raw,
    load_famcare_extract(
      path = bcr_pathway_docsernos_file,
@@ -973,7 +997,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_client_raw,
    load_famcare_extract(
      path = bcr_client_file,
@@ -981,7 +1005,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_ref_raw,
    load_famcare_extract(
      path = bcr_ref_file,
@@ -989,7 +1013,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_ic_raw,
    load_famcare_extract(
      path = bcr_ic_file,
@@ -997,7 +1021,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_referrals_placed_raw,
    load_famcare_extract(
      path = bcr_referrals_placed_file,
@@ -1005,7 +1029,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_presenting_concerns_raw,
    load_famcare_extract(
      path = bcr_presenting_concerns_file,
@@ -1013,7 +1037,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_events_raw,
    load_famcare_extract(
      path = bcr_events_file,
@@ -1021,7 +1045,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_client_counseling_sessions_raw,
    load_famcare_extract(
      path = bcr_client_counseling_sessions_file,
@@ -1029,7 +1053,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_active_payor_source_raw,
    load_famcare_extract(
      path = bcr_active_payor_source_file,
@@ -1037,7 +1061,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_all_payor_source_raw,
    load_famcare_extract(
      path = bcr_all_payor_source_file,
@@ -1045,7 +1069,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_active_housing_raw,
    load_famcare_extract(
      path = bcr_active_housing_file,
@@ -1053,7 +1077,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
    bcr_all_housing_raw,
    load_famcare_extract(
      path = bcr_all_housing_file,
@@ -1063,7 +1087,7 @@ tar_target(
  
  ## Complex Care ----
  
- tar_target(
+ targets::tar_target(
   complex_care_provider_placement_raw,
   load_famcare_extract(
    path = complex_care_provider_placement_file,
@@ -1071,7 +1095,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_pathclient_raw,
   load_famcare_extract(
    path = complex_care_pathclient_file,
@@ -1079,7 +1103,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_pathway_docsernos_raw,
   load_famcare_extract(
    path = complex_care_pathway_docsernos_file,
@@ -1087,7 +1111,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_client_raw,
   load_famcare_extract(
    path = complex_care_client_file,
@@ -1095,7 +1119,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_roster_raw,
   load_famcare_extract(
    path = complex_care_roster_file,
@@ -1103,7 +1127,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_clinical_notes_raw,
   load_famcare_extract(
    path = complex_care_clinical_notes_file,
@@ -1111,7 +1135,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_mercy_beacn_benchmarks_raw,
   load_famcare_extract(
    path = complex_care_mercy_beacn_benchmarks_file,
@@ -1119,7 +1143,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_pfp_discharge_raw,
   load_famcare_extract(
    path = complex_care_pfp_discharge_file,
@@ -1127,7 +1151,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_quality_of_life_raw,
   load_famcare_extract(
    path = complex_care_quality_of_life_file,
@@ -1135,7 +1159,7 @@ tar_target(
   )
  ),
 
- tar_target(
+ targets::tar_target(
   complex_care_shelter_beds_raw,
   load_famcare_extract(
    path = complex_care_shelter_beds_file,
@@ -1143,7 +1167,7 @@ tar_target(
   )
  ),
 
- tar_target(
+ targets::tar_target(
   complex_care_active_payor_source_raw,
   load_famcare_extract(
    path = complex_care_active_payor_source_file,
@@ -1151,7 +1175,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_all_payor_source_raw,
   load_famcare_extract(
    path = complex_care_all_payor_source_file,
@@ -1159,7 +1183,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_active_housing_raw,
   load_famcare_extract(
    path = complex_care_active_housing_file,
@@ -1167,7 +1191,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   complex_care_all_housing_raw,
   load_famcare_extract(
    path = complex_care_all_housing_file,
@@ -1177,7 +1201,7 @@ tar_target(
 
 # supplies the entire complex_care_paths because path isn't an argument in
 # load_complex_care_ext_mercy_utilization.
-tar_target(
+targets::tar_target(
   complex_care_ext_mercy_utilization_raw,
   load_complex_care_ext_mercy_utilization(
     complex_care_paths = complex_care_paths,
@@ -1185,7 +1209,7 @@ tar_target(
   )
 ),
 
- tar_target(
+ targets::tar_target(
    complex_care_ext_atd_notifications_raw,
    load_complex_care_ext_atd_notifications(
      complex_care_paths,
@@ -1193,15 +1217,7 @@ tar_target(
    )
  ),
  
-tar_target(
-  complex_care_ext_atd_watchlist_raw,
-  load_famcare_extract(
-    path = complex_care_ext_atd_watchlist_file,
-    analytic_fields = analytic_fields
-  )
-),
-
-tar_target(
+targets::tar_target(
   complex_care_ext_pfp_service_history_raw,
   load_famcare_extract(
     path = complex_care_ext_pfp_service_history_file,
@@ -1210,16 +1226,39 @@ tar_target(
 ),
 
 # Target to build the alert watchlist
-tar_target(
+targets::tar_target(
   complex_care_alert_watchlist_raw,
   transform_complex_care_alert_watchlist(
     complex_care_etl$complex_care_full_data
     )
 ),
 
+targets::tar_target(
+  complex_care_ext_pfp_metrics_legacy_raw,
+  load_ext_eto_extract(
+    complex_care_ext_pfp_metrics_legacy_file,
+    analytic_fields
+  )
+),
+
+targets::tar_target(
+  complex_care_ext_pcc_facility_lut_raw,
+  load_complex_care_ext_pcc_facility_lut(
+    complex_care_ext_pcc_facility_lut_file
+  )
+),
+
+targets::tar_target(
+  complex_care_ext_eto_roster_raw,
+  load_complex_care_ext_eto_roster(
+    complex_care_ext_eto_roster_file,
+    analytic_fields
+  )
+),
+
  ## EPICC ----
  
- tar_target(
+ targets::tar_target(
   epicc_provider_placement_raw,
   load_famcare_extract(
    path = epicc_provider_placement_file,
@@ -1227,7 +1266,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_pathclient_raw,
   load_famcare_extract(
    path = epicc_pathclient_file,
@@ -1235,7 +1274,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_pathway_docsernos_raw,
   load_famcare_extract(
    path = epicc_pathway_docsernos_file,
@@ -1243,7 +1282,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_client_raw,
   load_famcare_extract(
    path = epicc_client_file,
@@ -1251,7 +1290,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_ref_raw,
   load_famcare_extract(
    path = epicc_ref_file,
@@ -1259,7 +1298,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_ic_raw,
   load_famcare_extract(
    path = epicc_ic_file,
@@ -1267,7 +1306,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_two_week_raw,
   load_famcare_extract(
    path = epicc_two_week_file,
@@ -1275,7 +1314,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_thirty_day_raw,
   load_famcare_extract(
    path = epicc_thirty_day_file,
@@ -1283,7 +1322,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_three_month_raw,
   load_famcare_extract(
    path = epicc_three_month_file,
@@ -1291,7 +1330,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_six_month_raw,
   load_famcare_extract(
    path = epicc_six_month_file,
@@ -1299,7 +1338,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_reengagement_raw,
   load_famcare_extract(
    path = epicc_reengagement_file,
@@ -1307,7 +1346,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_active_intake_raw,
   load_famcare_extract(
    path = epicc_active_intake_file,
@@ -1315,7 +1354,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_all_intake_raw,
   load_famcare_extract(
    path = epicc_all_intake_file,
@@ -1323,7 +1362,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_active_payor_source_raw,
   load_famcare_extract(
    path = epicc_active_payor_source_file,
@@ -1331,7 +1370,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_all_payor_source_raw,
   load_famcare_extract(
    path = epicc_all_payor_source_file,
@@ -1339,7 +1378,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_active_housing_raw,
   load_famcare_extract(
    path = epicc_active_housing_file,
@@ -1347,7 +1386,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_all_housing_raw,
   load_famcare_extract(
    path = epicc_all_housing_file,
@@ -1355,7 +1394,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_case_notes_raw,
   load_famcare_extract(
    path = epicc_case_notes_file,
@@ -1363,7 +1402,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   epicc_support_services_tracker_raw,
   load_famcare_extract(
    path = epicc_support_services_tracker_file,
@@ -1373,7 +1412,7 @@ tar_target(
  
  ## ERE ----
  
- tar_target(
+ targets::tar_target(
   ere_provider_placement_raw,
   load_famcare_extract(
    path = ere_provider_placement_file,
@@ -1381,7 +1420,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_pathclient_raw,
   load_famcare_extract(
    path = ere_pathclient_file,
@@ -1389,7 +1428,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_pathway_docsernos_raw,
   load_famcare_extract(
    path = ere_pathway_docsernos_file,
@@ -1397,7 +1436,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_client_raw,
   load_famcare_extract(
    path = ere_client_file,
@@ -1405,7 +1444,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_ref_raw,
   load_famcare_extract(
    path = ere_ref_file,
@@ -1413,7 +1452,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_hosp_visit_raw,
   load_famcare_extract(
    path = ere_hosp_visit_file,
@@ -1421,7 +1460,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_ihna_raw,
   load_famcare_extract(
    path = ere_ihna_file,
@@ -1429,7 +1468,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_three_month_raw,
   load_famcare_extract(
    path = ere_three_month_file,
@@ -1437,7 +1476,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_six_month_raw,
   load_famcare_extract(
    path = ere_six_month_file,
@@ -1445,7 +1484,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_bhs_raw,
   load_famcare_extract(
    path = ere_bhs_file,
@@ -1453,7 +1492,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_active_payor_source_raw,
   load_famcare_extract(
    path = ere_active_payor_source_file,
@@ -1461,7 +1500,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_all_payor_source_raw,
   load_famcare_extract(
    path = ere_all_payor_source_file,
@@ -1469,7 +1508,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_active_housing_raw,
   load_famcare_extract(
    path = ere_active_housing_file,
@@ -1477,7 +1516,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_all_housing_raw,
   load_famcare_extract(
    path = ere_all_housing_file,
@@ -1485,7 +1524,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   ere_client_needs_raw,
   load_famcare_extract(
    path = ere_client_needs_file,
@@ -1495,7 +1534,7 @@ tar_target(
  
  ## YERE ----
  
- tar_target(
+ targets::tar_target(
   yere_provider_placement_raw,
   load_famcare_extract(
    path = yere_provider_placement_file,
@@ -1503,7 +1542,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_pathclient_raw,
   load_famcare_extract(
    path = yere_pathclient_file,
@@ -1511,7 +1550,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_pathway_docsernos_raw,
   load_famcare_extract(
    path = yere_pathway_docsernos_file,
@@ -1519,7 +1558,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_client_raw,
   load_famcare_extract(
    path = yere_client_file,
@@ -1527,7 +1566,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_ref_raw,
   load_famcare_extract(
    path = yere_ref_file,
@@ -1535,7 +1574,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_hosp_visit_raw,
   load_famcare_extract(
    path = yere_hosp_visit_file,
@@ -1543,7 +1582,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_ia_raw,
   load_famcare_extract(
    path = yere_ia_file,
@@ -1551,7 +1590,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_thirty_day_raw,
   load_famcare_extract(
    path = yere_thirty_day_file,
@@ -1559,7 +1598,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_three_month_raw,
   load_famcare_extract(
    path = yere_three_month_file,
@@ -1567,7 +1606,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_six_month_raw,
   load_famcare_extract(
    path = yere_six_month_file,
@@ -1575,7 +1614,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_bhs_raw,
   load_famcare_extract(
    path = yere_bhs_file,
@@ -1583,7 +1622,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_active_payor_source_raw,
   load_famcare_extract(
    path = yere_active_payor_source_file,
@@ -1591,7 +1630,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_all_payor_source_raw,
   load_famcare_extract(
    path = yere_all_payor_source_file,
@@ -1599,7 +1638,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_active_housing_raw,
   load_famcare_extract(
    path = yere_active_housing_file,
@@ -1607,7 +1646,7 @@ tar_target(
   )
  ),
  
- tar_target(
+ targets::tar_target(
   yere_all_housing_raw,
   load_famcare_extract(
    path = yere_all_housing_file,
@@ -1615,37 +1654,115 @@ tar_target(
   )
  ),
  
- tar_target(
-  yere_client_needs_raw,
-  load_famcare_extract(
-   path = yere_client_needs_file,
-   analytic_fields = analytic_fields
-  )
- ),
+  targets::tar_target(
+    yere_client_needs_raw,
+    load_famcare_extract(
+     path = yere_client_needs_file,
+     analytic_fields = analytic_fields
+    )
+   ),
  
- tar_target(
-  yere_caregiver_needs_raw,
-  load_famcare_extract(
-   path = yere_caregiver_needs_file,
-   analytic_fields = analytic_fields
-  )
- ),
+  targets::tar_target(
+    yere_caregiver_needs_raw,
+    load_famcare_extract(
+     path = yere_caregiver_needs_file,
+     analytic_fields = analytic_fields
+    )
+   ),
 
-tar_target(
-  yere_client_family_needs_raw,
-  load_famcare_extract(
-    path = yere_client_family_needs_file,
-    analytic_fields = analytic_fields
-  )
-),
+  targets::tar_target(
+    yere_client_family_needs_raw,
+    load_famcare_extract(
+      path = yere_client_family_needs_file,
+      analytic_fields = analytic_fields
+    )
+  ),
  
+  # ===
+  # Standalone EXT Asset Transformation Targets ----
+  # ===
+  
+  ## BCR ----
+  
+  ## Complex Care ----
+  targets::tar_target(
+    complex_care_ext_mercy_utilization_transformed,
+    transform_complex_care_ext_mercy_utilization(
+      df_raw = complex_care_ext_mercy_utilization_raw,
+      complex_care_paths = complex_care_paths,
+      ccsr_dx_lut = ccsr_dx_lut
+    )
+  ),
+  
+  targets::tar_target(
+    complex_care_ext_pfp_metrics_legacy,
+    complex_care_ext_pfp_metrics_legacy_raw
+  ),
+
+  # PCC visit facility LUT target for downstream use
+  targets::tar_target(
+    complex_care_ext_pcc_facility_lut,
+    complex_care_ext_pcc_facility_lut_raw
+  ),
+  
+  
+  targets::tar_target(
+    complex_care_ext_eto_roster,
+    complex_care_ext_eto_roster_raw
+  ),
+  
+  ## EPICC ----
+  
+  ## ERE ----
+  
+  ## YERE ----
+
+  # ===
+  # Referral Flow Targets (required by diagnostics) ----
+  # ===
+  
+  ## BCR ----
+  
+  targets::tar_target(
+    bcr_referral_flow,
+    bcr_etl$transform$referral_flow$joined_referral_flow
+  ),
+  
+  ## Complex Care ----
+  
+  targets::tar_target(
+    complex_care_referral_flow,
+    complex_care_etl$transform$referral_flow$joined_referral_flow
+  ),
+  
+  ## EPICC ----
+  
+  targets::tar_target(
+    epicc_referral_flow,
+    epicc_etl$transform$referral_flow$joined_referral_flow
+  ),
+  
+  ## ERE ----
+  
+  targets::tar_target(
+    ere_referral_flow,
+    ere_etl$transform$referral_flow$joined_referral_flow
+  ),
+  
+  ## YERE ----
+  
+  targets::tar_target(
+    yere_referral_flow,
+    yere_etl$transform$referral_flow$joined_referral_flow
+  ),
+
  # ===
  # Program ETL branches (each returns a structured list) ----
  # ===
 
  ## BCR ----
  
- tar_target(
+ targets::tar_target(
    bcr_etl,
    run_bcr_etl(
      analytic_fields = analytic_fields,
@@ -1668,7 +1785,7 @@ tar_target(
 
  ## Complex Care ----
 
- tar_target(
+ targets::tar_target(
   complex_care_etl,
   run_complex_care_etl(
     analytic_fields = analytic_fields,
@@ -1692,15 +1809,17 @@ tar_target(
     complex_care_ext_mercy_utilization_transformed =
       complex_care_ext_mercy_utilization_transformed,
     complex_care_ext_atd_notifications = complex_care_ext_atd_notifications_raw,
-    complex_care_ext_atd_watchlist = complex_care_ext_atd_watchlist_raw,
     complex_care_ext_pfp_service_history = 
-      complex_care_ext_pfp_service_history_raw
+      complex_care_ext_pfp_service_history_raw,
+    complex_care_ext_pfp_metrics_legacy = complex_care_ext_pfp_metrics_legacy,
+    complex_care_ext_pcc_facility_lut = complex_care_ext_pcc_facility_lut,
+    complex_care_ext_eto_roster = complex_care_ext_eto_roster
   )
  ),
  
  ## EPICC ----
 
- tar_target(
+ targets::tar_target(
   epicc_etl,
   run_epicc_etl(
    analytic_fields = analytic_fields,
@@ -1728,7 +1847,7 @@ tar_target(
  
  ## ERE ----
 
- tar_target(
+ targets::tar_target(
   ere_etl,
   run_ere_etl(
    analytic_fields = analytic_fields,
@@ -1752,7 +1871,7 @@ tar_target(
  
   ## YERE ----
 
- tar_target(
+ targets::tar_target(
   yere_etl,
   run_yere_etl(
     analytic_fields = analytic_fields,
@@ -1777,102 +1896,41 @@ tar_target(
     )
   ),
  
-  # ===
-  # Standalone EXT Asset Transformation Targets ----
-  # ===
-  
-  ## BCR ----
-
-  ## Complex Care ----
-  tar_target(
-    complex_care_ext_mercy_utilization_transformed,
-    transform_complex_care_ext_mercy_utilization(
-      df_raw = complex_care_ext_mercy_utilization_raw,
-      complex_care_paths = complex_care_paths,
-      ccsr_dx_lut = ccsr_dx_lut
-    )
-  ),
-
-  ## EPICC ----
-  
-  ## ERE ----
-
-  ## YERE ----
-
-  # ===
-  # Referral Flow Targets (required by diagnostics) ----
-  # ===
-
-  ## BCR ----
-
-  tar_target(
-    bcr_referral_flow,
-    bcr_etl$transform$referral_flow$joined_referral_flow
-  ),
-
-  ## Complex Care ----
-
-  tar_target(
-    complex_care_referral_flow,
-    complex_care_etl$transform$referral_flow$joined_referral_flow
-  ),
-
-  ## EPICC ----
-
-  tar_target(
-    epicc_referral_flow,
-    epicc_etl$transform$referral_flow$joined_referral_flow
-  ),
-
-  ## ERE ----
-
-  tar_target(
-    ere_referral_flow,
-    ere_etl$transform$referral_flow$joined_referral_flow
-  ),
-
-  ## YERE ----
-
-  tar_target(
-    yere_referral_flow,
-    yere_etl$transform$referral_flow$joined_referral_flow
-  ),
-
  # ===
- # Convenience targets exposing just the full_data tables ----
+ # FULL_DATA table convenience targets ----
  # ===
 
  ## BCR ----
 
- tar_target(
+ targets::tar_target(
   bcr_full_data,
   bcr_etl$bcr_full_data
  ),
  
  ## Complex Care ----
  
- tar_target(
+ targets::tar_target(
   complex_care_full_data,
   complex_care_etl$complex_care_full_data
  ),
  
  ## EPICC ----
 
-  tar_target(
+  targets::tar_target(
   epicc_full_data,
   epicc_etl$epicc_full_data
   ),
  
  ## ERE ----
 
-  tar_target(
+  targets::tar_target(
   ere_full_data,
   ere_etl$ere_full_data
   ),
  
  ## YERE ----
 
- tar_target(
+ targets::tar_target(
   yere_full_data,
   yere_etl$yere_full_data
   ),
@@ -1888,13 +1946,13 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
   bhn_wide_pathclient_file,
   bhn_wide_paths$bhn_wide_pathclient,
   format = "file"
  ),
  
- tar_target(
+ targets::tar_target(
   bhn_wide_pathclient_raw,
   load_famcare_extract(
    bhn_wide_pathclient_file,
@@ -1902,7 +1960,7 @@ tar_target(
    )
  ),
  
- tar_target(
+ targets::tar_target(
   bhn_wide_full_data,
   list(
    bhn_wide_pathclient = bhn_wide_pathclient_raw,
@@ -1915,11 +1973,11 @@ tar_target(
  ),
 
 # ===
-# File Write Outputs (csv|xlsx) ----
+# File WRITE Outputs (csv|xlsx) ----
 # ===
 
 # Write the PCC alerting watchlist to enterprise server
-tar_target(
+targets::tar_target(
   complex_care_alert_watchlist_server_csv,
   {
     out_path <- paste0(
@@ -1943,7 +2001,7 @@ tar_target(
 ),
 
 # Write the PCC alerting watchlist to Complex Care SharePoint folder
-tar_target(
+targets::tar_target(
   complex_care_alert_watchlist_sharepoint_csv,
   {
     out_path <- paste0(
@@ -1976,7 +2034,7 @@ tar_target(
  
 ## Cartography Bundle ----
 
-tar_target(
+targets::tar_target(
   cartography_county_two_rds,
   {
     dir.create(
@@ -1993,7 +2051,7 @@ tar_target(
   format = "file"
 ),
 
-tar_target(
+targets::tar_target(
   cartography_county_seven_rds,
   {
     dir.create(
@@ -2010,7 +2068,7 @@ tar_target(
   format = "file"
 ),
 
-tar_target(
+targets::tar_target(
   cartography_zcta_fips_rds,
   {
     dir.create(
@@ -2027,7 +2085,7 @@ tar_target(
   format = "file"
 ),
 
-tar_target(
+targets::tar_target(
   cartography_north_zip_codes_rds,
   {
     dir.create(
@@ -2046,7 +2104,7 @@ tar_target(
 
 ## CCSR DX LUT ----
 
-tar_target(
+targets::tar_target(
   ccsr_dx_lut_rds,
   {
     dir.create(
@@ -2065,7 +2123,7 @@ tar_target(
 
  ## BCR ----
 
- tar_target(
+ targets::tar_target(
   bcr_etl_rds,
   { dir.create(
    "data_intermediate/etl/bcr",
@@ -2082,7 +2140,7 @@ tar_target(
 
  ## Complex Care ----
 
- tar_target(
+ targets::tar_target(
   complex_care_etl_rds,
   { dir.create(
    "data_intermediate/etl/complex_care",
@@ -2099,7 +2157,7 @@ tar_target(
 
  ## EPICC ----
 
- tar_target(
+ targets::tar_target(
   epicc_etl_rds,
   {
    dir.create(
@@ -2118,7 +2176,7 @@ tar_target(
 
  ## ERE ----
 
- tar_target(
+ targets::tar_target(
   ere_etl_rds,
   { dir.create(
    "data_intermediate/etl/ere",
@@ -2135,7 +2193,7 @@ tar_target(
 
  ## YERE ----
 
- tar_target(
+ targets::tar_target(
   yere_etl_rds,
   { dir.create(
    "data_intermediate/etl/yere",
@@ -2152,7 +2210,7 @@ tar_target(
  
  ## BHN-Wide ----
  
-tar_target(
+targets::tar_target(
   bhn_wide_rds,
   {
     out <- "data_intermediate/etl/bhn_wide/bhn_wide_etl.rds"
@@ -2171,7 +2229,6 @@ tar_target(
   },
   format = "file",
   deployment = "main"
-)
-
+  )
 
 )

@@ -493,7 +493,7 @@ rolling_fy_periods <- function(
 # 6. Month-year labels (useful for reporting) ----
 # ===
 
-month_year_label <- function(
+month_year_label_full <- function(
   date
 ) {
   paste0(
@@ -507,6 +507,92 @@ month_year_label <- function(
       date
     )
   )
+}
+
+month_year_label_abbrev <- function(
+    date
+) {
+  paste0(
+    lubridate::month(
+      date,
+      label = TRUE,
+      abbr = TRUE
+    ),
+    " ",
+    lubridate::year(
+      date
+    )
+  )
+}
+
+fiscal_year_month_index <- function(
+    date,
+    fiscal_system = c(
+      "state",
+      "federal"
+      )
+    ) {
+  fiscal_system <- match.arg(
+    fiscal_system
+    )
+  
+  m <- lubridate::month(
+    date
+    )
+  
+  if (
+    fiscal_system == "state"
+    ) {
+    # July = 1, … June = 12
+    (
+      (
+        m - 7
+        ) %% 12
+      ) + 1
+  } else {
+    # federal: October = 1, … September = 12
+    (
+      (
+        m - 10
+        ) %% 12
+      ) + 1
+  }
+}
+
+order_fiscal_year_labels <- function(
+    df,
+    label_col,
+    date_col,
+    fiscal_system = c(
+      "state",
+      "federal"
+      )
+    ) {
+  fiscal_system <- match.arg(
+    fiscal_system
+    )
+  
+  df |>
+    dplyr::mutate(
+      fiscal_month_index = fiscal_year_month_index(
+        {{ date_col }},
+        fiscal_system
+        )
+    ) |>
+    dplyr::arrange(
+      fiscal_month_index
+      ) |>
+    dplyr::mutate(
+      {{ label_col }} := factor(
+        {{ label_col }},
+        levels = unique(
+          {{ label_col }}
+          )
+      )
+    ) |>
+    dplyr::select(
+      -fiscal_month_index
+      )
 }
 
 # ===
