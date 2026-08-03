@@ -203,13 +203,20 @@ complex_care_paths <- list(
     "EXT ATD Notifications Report",
     pattern = "ext_atd_notifications_\\d{8}\\.csv$"
   ),
-  complex_care_ext_atd_watchlist_uploads = make_latest_file_path(
-    "EXT ATD Watchlist Uploads",
-    pattern = "ext_atd_watchlist_\\d{8}\\.csv$"
-  ),
   complex_care_ext_pfp_service_history = make_all_file_paths(
     "EXT PFP Service History Report",
     pattern = "ext_pfp_service_history_report_\\d{8}\\.(csv|xlsx|xls)$"
+  ),
+  complex_care_ext_pfp_metrics_legacy = make_latest_file_path(
+    "EXT PFP Metrics",
+    pattern = "ext_pfp_metrics_legacy_\\d{8}\\.csv$"
+  ),
+  complex_care_ext_pcc_facility_lut = make_lut_path(
+    "pcc_notifications_visit_facilities_lut.xlsx"
+  ),
+  complex_care_ext_eto_roster = make_path(
+    "EXT ETO Extracts",
+    "ext_eto_complex_care_roster.csv"
   )
 )
 
@@ -217,10 +224,10 @@ complex_care_paths <- list(
 # 2. Ingestion/Loading Functions ----
 # ===
 
-# ===
-# Ingest complex_care_client ----
-#   - one row per client
-# ===
+## ===
+## Ingest complex_care_client ----
+##   - one row per client
+## ===
 load_complex_care_client <- function(
   complex_care_paths,
   analytic_fields
@@ -231,12 +238,12 @@ load_complex_care_client <- function(
   )
 }
 
-# ===
-# Ingest complex_care_provider_placement ----
-#   - one row per enrollment - available to supplement complex_care_pathclient 
-#       but not joined
-#   - Renames key fields
-# ===
+## ===
+## Ingest complex_care_provider_placement ----
+##   - one row per enrollment - available to supplement complex_care_pathclient 
+##       but not joined
+##   - Renames key fields
+## ===
 load_complex_care_provider_placement <- function(
   complex_care_paths,
   analytic_fields
@@ -247,11 +254,11 @@ load_complex_care_provider_placement <- function(
   )
 }
 
-# ===
-# Ingest complex_care_pathclient ----
-#   - Renames key fields
-#   - Pivoting handled separately, so this is not one row per enrollment yet
-# ===
+## ===
+## Ingest complex_care_pathclient ----
+##   - Renames key fields
+##   - Pivoting handled separately, so this is not one row per enrollment yet
+## ===
 load_complex_care_pathclient <- function(
   complex_care_paths,
   analytic_fields
@@ -262,10 +269,10 @@ load_complex_care_pathclient <- function(
   )
 }
 
-# ===
-# Ingest complex_care_pathway_docsernos ----
-#   - one row per Pathway Event form
-# ===
+## ===
+## Ingest complex_care_pathway_docsernos ----
+##   - one row per Pathway Event form
+## ===
 load_complex_care_pathway_docsernos <- function(
   complex_care_paths,
   analytic_fields
@@ -276,10 +283,10 @@ load_complex_care_pathway_docsernos <- function(
   )
 }
 
-# ===
-# Ingest complex_care_roster ----
-#   - one row per roster for each enrollment
-# ===
+## ===
+## Ingest complex_care_roster ----
+##   - one row per roster for each enrollment
+## ===
 load_complex_care_roster <- function(
   complex_care_paths,
   analytic_fields
@@ -290,10 +297,10 @@ load_complex_care_roster <- function(
   )
 }
 
-# ===
-# Ingest complex_care_clinical_notes ----
-#   - one row per note for each enrollment
-# ===
+## ===
+## Ingest complex_care_clinical_notes ----
+##   - one row per note for each enrollment
+## ===
 load_complex_care_clinical_notes <- function(
   complex_care_paths,
   analytic_fields
@@ -304,10 +311,10 @@ load_complex_care_clinical_notes <- function(
   )
 }
 
-# ===
-# Ingest complex_care_mercy_beacn_benchmarks ----
-#   - one row per metrics for each enrollment
-# ===
+## ===
+## Ingest complex_care_mercy_beacn_benchmarks ----
+##   - one row per metrics for each enrollment
+## ===
 load_complex_care_mercy_beacn_benchmarks <- function(
   complex_care_paths,
   analytic_fields
@@ -318,10 +325,10 @@ load_complex_care_mercy_beacn_benchmarks <- function(
   )
 }
 
-# ===
-# Ingest complex_care_pfp_discharge ----
-#   - one row per presenting concerns for each enrollment
-# ===
+## ===
+## Ingest complex_care_pfp_discharge ----
+##   - one row per presenting concerns for each enrollment
+## ===
 load_complex_care_pfp_discharge <- function(
   complex_care_paths,
   analytic_fields
@@ -332,10 +339,10 @@ load_complex_care_pfp_discharge <- function(
   )
 }
 
-# ===
-# Ingest complex_care_quality_of_life ----
-#   - one row per event for each enrollment
-# ===
+## ===
+## Ingest complex_care_quality_of_life ----
+##   - one row per event for each enrollment
+## ===
 load_complex_care_quality_of_life <- function(
   complex_care_paths,
   analytic_fields
@@ -346,10 +353,10 @@ load_complex_care_quality_of_life <- function(
   )
 }
 
-# ===
-# Ingest complex_care_shelter_beds ----
-#   - multiple rows per client counseling session for each enrollment
-# ===
+## ===
+## Ingest complex_care_shelter_beds ----
+##   - multiple rows per client counseling session for each enrollment
+## ===
 load_complex_care_shelter_beds <- function(
   complex_care_paths,
   analytic_fields
@@ -360,11 +367,11 @@ load_complex_care_shelter_beds <- function(
   )
 }
 
-# ===
-# Ingest complex_care_active_payor_source ----
-#   - one row per active payor source per enrollment
-#   - Renames key fields
-# ===
+## ===
+## Ingest complex_care_active_payor_source ----
+##   - one row per active payor source per enrollment
+##   - Renames key fields
+## ===
 load_complex_care_active_payor_source <- function(
   complex_care_paths,
   analytic_fields
@@ -375,11 +382,11 @@ load_complex_care_active_payor_source <- function(
   )
 }
 
-# ===
-# Ingest complex_care_all_payor_source ----
-#   - long form with one row per payor source record per enrollment, which
-#       means that this duplicates on enrollments
-# ===
+## ===
+## Ingest complex_care_all_payor_source ----
+##   - long form with one row per payor source record per enrollment, which
+##       means that this duplicates on enrollments
+## ===
 load_complex_care_all_payor_source <- function(
   complex_care_paths,
   analytic_fields
@@ -390,10 +397,10 @@ load_complex_care_all_payor_source <- function(
   )
 }
 
-# ===
-# Ingest complex_care_active_housing_status ----
-#   - one row per active housing status per enrollment
-# ===
+## ===
+## Ingest complex_care_active_housing_status ----
+##   - one row per active housing status per enrollment
+## ===
 load_complex_care_active_housing <- function(
   complex_care_paths,
   analytic_fields
@@ -404,11 +411,11 @@ load_complex_care_active_housing <- function(
   )
 }
 
-# ===
-# Ingest complex_care_all_housing_status ----
-#   - long form with one row per housing status record per enrollment, which
-#       means that this duplicates on enrollments
-# ===
+## ===
+## Ingest complex_care_all_housing_status ----
+##   - long form with one row per housing status record per enrollment, which
+##       means that this duplicates on enrollments
+## ===
 load_complex_care_all_housing <- function(
   complex_care_paths,
   analytic_fields
@@ -419,10 +426,10 @@ load_complex_care_all_housing <- function(
   )
 }
 
-# ===
-# Ingest complex_care_ext_mercy_utilization ----
-#   - multiple rows per mrn
-# ===
+## ===
+## Ingest complex_care_ext_mercy_utilization ----
+##   - multiple rows per mrn
+## ===
 load_complex_care_ext_mercy_utilization <- function(
     complex_care_paths,
     analytic_fields
@@ -433,10 +440,10 @@ load_complex_care_ext_mercy_utilization <- function(
   )
 }
 
-# ===
-# Ingest complex_care_ext_atd_notifications ----
-#   - multiple rows per mrn
-# ===
+## ===
+## Ingest complex_care_ext_atd_notifications ----
+##   - multiple rows per mrn
+## ===
 load_complex_care_ext_atd_notifications <- function(
     complex_care_paths,
     analytic_fields
@@ -450,24 +457,10 @@ load_complex_care_ext_atd_notifications <- function(
   )
 }
 
-# ===
-# Ingest complex_care_ext_atd_watchlist ----
-#   - one row per mrn
-# ===
-load_complex_care_ext_atd_watchlist <- function(
-    complex_care_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_ext_atd_watchlist,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-  # Ingest pfp_service_history_report ----
-#   - multiple rows per mrn
-# ===
+## ===
+## Ingest complex_care_ext_pfp_service_history ----
+##   - multiple rows per mrn
+## ===
 load_complex_care_ext_pfp_service_history <- function(
     complex_care_paths,
     analytic_fields
@@ -476,6 +469,60 @@ load_complex_care_ext_pfp_service_history <- function(
     path = complex_care_paths$complex_care_ext_pfp_service_history,
     analytic_fields = analytic_fields
   )
+}
+
+## ===
+## Ingest complex_care_ext_pfp_metrics_legacy ----
+## ===
+load_complex_care_ext_pfp_metrics_legacy <- function(
+    path,
+    analytic_fields
+) {
+  load_ext_eto_extract(
+    path = path,
+    analytic_fields = analytic_fields
+  )
+}
+
+## ===
+## Ingest pcc_notifications_visit_faciliites_lut ----
+##   - non-client look-up table
+## ===
+load_complex_care_ext_pcc_facility_lut <- function(
+    path
+) {
+  readxl::read_excel(
+    path
+    ) |>
+    dplyr::mutate(
+      visit_facility = stringr::str_trim(
+        visit_facility
+        ),
+      dplyr::across(
+        c(
+          two_county,
+          seven_county,
+          east_metro
+          ),
+        ~ as.integer(
+          .
+          )
+      )
+    )
+}
+
+## ===
+## Ingest complex_care_ext_eto_roster ----
+##   - one row per eto_case_num
+## ===
+load_complex_care_ext_eto_roster <- function(
+    path,
+    analytic_fields
+    ) {
+  load_ext_eto_extract(
+    path = path,
+    analytic_fields = analytic_fields
+    )
 }
 
 # ===
@@ -527,7 +574,7 @@ transform_complex_care_pathclient <- function(
 ) {
   # Load raw pathclient extract, which is duplicated by Pathway Event form rows
   df <- complex_care$complex_care_pathclient |>
-    filter(
+    dplyr::filter(
       !is.na(
         tiedenrollment
       )
@@ -631,7 +678,7 @@ transform_complex_care_pathclient <- function(
     tidyr::pivot_wider(
       names_from = event_key,
       values_from = pwy_forms_docserno,
-      values_fn = ~ first(
+      values_fn = ~ dplyr::first(
         na.omit(
           .x
         )
@@ -696,7 +743,7 @@ transform_complex_care_ext_mercy_utilization <- function(
     ) {
   
   # Extract YYYYMMDD from filename
-  date_created <- ymd(
+  date_created <- lubridate::ymd(
     stringr::str_extract(
       complex_care_paths$complex_care_ext_mercy_utilization,
       "\\d{8}"
@@ -707,56 +754,56 @@ transform_complex_care_ext_mercy_utilization <- function(
   # 1. Filter Outpatient rows; retain encounter level; mutate new cols ----
   # ===
   df1 <- df_raw |>
-    mutate(
+    dplyr::mutate(
       age_at_admission = floor(
-        interval(
+        lubridate::interval(
           birth_date,
           adm_date_time
-        ) / years(
+        ) / lubridate::years(
           1
         )
       )
     ) |> 
-    filter(
+    dplyr::filter(
       age_at_admission >= 18,
       patient_class != "Outpatient"
     ) |> 
-    mutate(
+    dplyr::mutate(
       date_created = date_created,
-      ed_visit = case_when(
+      ed_visit = dplyr::case_when(
         patient_class == "Emergency" ~ 1,
         .default = 0
       ),
-      inpatient_visit = case_when(
+      inpatient_visit = dplyr::case_when(
         patient_class == "Inpatient" ~ 1,
         .default = 0
       ),
-      admission_year = year(
+      admission_year = lubridate::year(
         adm_date_time
         ),
       fiscal_year_admission = as.integer(
-        quarter(
+        lubridate::quarter(
           adm_date_time,
           with_year = TRUE,
           fiscal_start = 7
           )
         )
       ) |> 
-    mutate(
-      across(
+    dplyr::mutate(
+      dplyr::across(
         c(
           external_dx_id,
           external_dx_id_2,
           external_dx_id_3
           ),
-        ~ str_replace_all(
+        ~ stringr::str_replace_all(
           .,
           "[.]",
           ""
           )
         )
       ) |> 
-    rename(
+    dplyr::rename(
       external_dx_id_1 = external_dx_id,
       dx_name_1 = dx_name
       )
@@ -779,7 +826,7 @@ transform_complex_care_ext_mercy_utilization <- function(
   # 3. Pivot ICD-10 codes long ----
   # ===
   dx_long <- df1 |> 
-    select(
+    dplyr::select(
       pat_mrn_id,
       adm_date_time,
       disch_date_time,
@@ -790,7 +837,7 @@ transform_complex_care_ext_mercy_utilization <- function(
       external_dx_id_2,
       external_dx_id_3
     ) |> 
-    pivot_longer(
+    tidyr::pivot_longer(
       cols = c(
         external_dx_id_1,
         external_dx_id_2,
@@ -799,28 +846,28 @@ transform_complex_care_ext_mercy_utilization <- function(
       names_to = "dx_position",
       values_to = "icd10"
       ) |> 
-    mutate(
-      dx_name_long = case_when(
+    dplyr::mutate(
+      dx_name_long = dplyr::case_when(
         dx_position == "external_dx_id_1" ~ dx_name_1,
         dx_position == "external_dx_id_2" ~ dx_name_2,
         dx_position == "external_dx_id_3" ~ dx_name_3,
         .default = NA_character_
       )
     ) |>
-    left_join(
+    dplyr::left_join(
       ccsr_dx_lut,
-      by = join_by(
+      by = dplyr::join_by(
         icd10 == icd_10_cm_code
         )
       ) |> 
-    mutate(
+    dplyr::mutate(
       ccsr_prefix = substr(
         default_ccsr_category_ip,
         1,
         3
         )
       ) |> 
-    mutate(
+    dplyr::mutate(
       # MBD classification: prefix of default CCSR category
       is_mbd = ccsr_prefix == "MBD",
       # SUD classification: specific default CCSR categories
@@ -831,17 +878,17 @@ transform_complex_care_ext_mercy_utilization <- function(
   # 4. Encounter-level flags ----
   # ===
   encounter_flags <- dx_long |>
-    arrange(
+    dplyr::arrange(
       pat_mrn_id,
       adm_date_time,
       disch_date_time
     ) |> 
-    group_by(
+    dplyr::group_by(
       pat_mrn_id,
       adm_date_time,
       disch_date_time
       ) |>
-    summarize(
+    dplyr::summarize(
       mbd_encounter_flag = as.integer(
         any(
           is_mbd,
@@ -854,10 +901,10 @@ transform_complex_care_ext_mercy_utilization <- function(
           na.rm = TRUE
           )
         ),
-      mbd_dx_name = first(
+      mbd_dx_name = dplyr::first(
         dx_name_long[is_mbd]
         ),
-      sud_dx_name = first(
+      sud_dx_name = dplyr::first(
         dx_name_long[is_sud]
         ),
       .groups = "drop"
@@ -867,10 +914,10 @@ transform_complex_care_ext_mercy_utilization <- function(
   # 5. Patient-level flags ----
   # ===
   patient_flags <- dx_long |>
-    group_by(
+    dplyr::group_by(
       pat_mrn_id
       ) |>
-    summarize(
+    dplyr::summarize(
       mbd_patient_flag = as.integer(
         any(
           is_mbd,
@@ -890,22 +937,22 @@ transform_complex_care_ext_mercy_utilization <- function(
   # 6. ED 30-Day Return Logic (groups by patient only) ----
   # ===
   ed_returns <- df1 |>
-    filter(
+    dplyr::filter(
       ed_visit == 1
       ) |>
-    arrange(
+    dplyr::arrange(
       pat_mrn_id,
       adm_date_time
       ) |>
-    group_by(
+    dplyr::group_by(
       pat_mrn_id
       ) |>
-    mutate(
-      prior_ed_disch = lag(
+    dplyr::mutate(
+      prior_ed_disch = dplyr::lag(
         disch_date_time
         ),
-      prior_ed_30day = lag(
-        disch_date_time + days(
+      prior_ed_30day = dplyr::lag(
+        disch_date_time + lubridate::days(
           30
           )
         ),
@@ -926,8 +973,8 @@ transform_complex_care_ext_mercy_utilization <- function(
           ed_return_gap <= 30
       )
     ) |>
-    ungroup() |>
-    select(
+    dplyr::ungroup() |>
+    dplyr::select(
       pat_mrn_id,
       adm_date_time,
       ed_30day_return_flag
@@ -937,21 +984,21 @@ transform_complex_care_ext_mercy_utilization <- function(
   # 7. IP 30-Day Return Logic (groups by patient only) ----
   # ===
   ip_returns <- df1 |>
-    filter(
+    dplyr::filter(
       inpatient_visit == 1
       ) |>
-    arrange(
+    dplyr::arrange(
       pat_mrn_id,
       adm_date_time
       ) |>
-    group_by(
+    dplyr::group_by(
       pat_mrn_id
       ) |>
-    mutate(
-      prior_ip_disch = lag(
+    dplyr::mutate(
+      prior_ip_disch = dplyr::lag(
         disch_date_time
         ),
-      prior_ip_30day = lag(
+      prior_ip_30day = dplyr::lag(
         disch_date_time + days(
           30
           )
@@ -973,8 +1020,8 @@ transform_complex_care_ext_mercy_utilization <- function(
           ip_return_gap <= 30
         )
       ) |>
-    ungroup() |>
-    select(
+    dplyr::ungroup() |>
+    dplyr::select(
       pat_mrn_id,
       adm_date_time,
       ip_30day_return_flag
@@ -989,7 +1036,7 @@ transform_complex_care_ext_mercy_utilization <- function(
   # 8. Join ED/IP return flags back to df1 ----
   # ===
   df_final <- df1 |>
-    left_join(
+    dplyr::left_join(
       encounter_flags,
         by = c(
           "pat_mrn_id",
@@ -997,30 +1044,30 @@ transform_complex_care_ext_mercy_utilization <- function(
           "disch_date_time"
         )
       ) |>
-    left_join(
+    dplyr::left_join(
       patient_flags,
       by = "pat_mrn_id"
       ) |>
-    left_join(
+    dplyr::left_join(
       ed_returns,
       by = c(
         "pat_mrn_id",
         "adm_date_time"
         )
       ) |>
-    left_join(
+    dplyr::left_join(
       ip_returns,
       by = c(
         "pat_mrn_id",
         "adm_date_time"
         )
       ) |>
-    mutate(
-      ed_30day_return_flag = replace_na(
+    dplyr::mutate(
+      ed_30day_return_flag = tidyr::replace_na(
         ed_30day_return_flag,
         0
         ),
-      ip_30day_return_flag = replace_na(
+      ip_30day_return_flag = tidyr::replace_na(
         ip_30day_return_flag,
         0
         )
@@ -1309,28 +1356,28 @@ transform_complex_care_referral_flow <- function(
     # Join event forms by enrollment
     dplyr::left_join(
       roster,
-      by = join_by(
+      by = dplyr::join_by(
         "client_number",
         "tiedenrollment"
       )
     ) |>
     dplyr::left_join(
       benchmarks,
-      by = join_by(
+      by = dplyr::join_by(
         "client_number",
         "tiedenrollment"
       )
     ) |>
     dplyr::left_join(
       pfp_discharge,
-      by = join_by(
+      by = dplyr::join_by(
         "client_number",
         "tiedenrollment"
       )
     ) |> 
     dplyr::left_join(
       ccnotes,
-      by = join_by(
+      by = dplyr::join_by(
         "client_number",
         "tiedenrollment"
       )
@@ -1356,8 +1403,10 @@ transform_complex_care_referral_flow <- function(
     ext_mercy_utilization = 
       complex_care$complex_care_ext_mercy_utilization_transformed,
     ext_atd_notifications = complex_care$complex_care_ext_atd_notifications,
-    ext_atd_watchlist = complex_care$complex_care_ext_atd_watchlist,
-    ext_pfp_service_history = complex_care$complex_care_ext_pfp_service_history
+    ext_pfp_service_history = complex_care$complex_care_ext_pfp_service_history,
+    ext_pfp_metrics_legacy = complex_care$complex_care_ext_pfp_metrics_legacy,
+    ext_pcc_facility_lut = complex_care$complex_care_ext_pcc_facility_lut,
+    ext_eto_complex_care_roster = complex_care$complex_care_ext_eto_roster
   )
 
   # Return the joined_referral_flow and scd
@@ -1378,7 +1427,7 @@ transform_complex_care_alert_watchlist <- function(
     ) {
   
   complex_care_full_data |>
-    filter(
+    dplyr::filter(
       !is.na(
         roster_added_cohort_date
         ),
@@ -1386,7 +1435,7 @@ transform_complex_care_alert_watchlist <- function(
         enrollment_ending_date
         )
     ) |>
-    select(
+    dplyr::select(
       client_number,
       client_first,
       client_middle,
@@ -1405,11 +1454,11 @@ transform_complex_care_alert_watchlist <- function(
       cell_phone,
       eto_case_num
     ) |>
-    mutate(
+    dplyr::mutate(
       state = "",
       cohort = "Clinical BEACN",
       agency = "Places for People",
-      phone = case_when(
+      phone = dplyr::case_when(
         !is.na(
           cell_phone
           ) ~ cell_phone,
@@ -1419,26 +1468,26 @@ transform_complex_care_alert_watchlist <- function(
         .default = NA_character_
       )
     ) |>
-    select(
+    dplyr::select(
       -primary_phone,
       -cell_phone
       ) |>
-    relocate(
+    dplyr::relocate(
       phone,
       .before = cohort
       ) |>
-    mutate(
+    dplyr::mutate(
       Group1 = "",
       Group2 = "",
       Group3 = "",
       Group4 = "",
       Group5 = ""
     ) |>
-    mutate(
-      addr_1 = case_when(
-        str_detect(
+    dplyr::mutate(
+      addr_1 = dplyr::case_when(
+        stringr::str_detect(
           street,
-          regex(
+          stringr::regex(
             "HOMELESS|Homeless|WITHOUT HOME|UNKNOWN",
             ignore_case = TRUE
             )
@@ -1446,8 +1495,8 @@ transform_complex_care_alert_watchlist <- function(
         .default = street
       )
     ) |>
-    mutate(
-      cm_id = if_else(
+    dplyr::mutate(
+      cm_id = dplyr::if_else(
         !is.na(
           eto_case_num
           ),
@@ -1459,12 +1508,12 @@ transform_complex_care_alert_watchlist <- function(
           )
       )
     ) |>
-    mutate(
+    dplyr::mutate(
       addr_1 = toupper(
         addr_1
         )
       ) |>
-    separate(
+    tidyr::separate(
       addr_1,
       into = c(
         "addr_3",
@@ -1474,8 +1523,8 @@ transform_complex_care_alert_watchlist <- function(
       extra = "drop",
       fill = "right"
     ) |>
-    mutate(
-      addr_2 = if_else(
+    dplyr::mutate(
+      addr_2 = dplyr::if_else(
         is.na(
           street2
           ),
@@ -1483,24 +1532,24 @@ transform_complex_care_alert_watchlist <- function(
         street2
         ),
       addr_3 = addr_3 |>
-        str_remove(
+        stringr::str_remove(
           "SOBER LIVING HOUSE"
           ) |>
-        str_remove(
+        stringr::str_remove(
           ","
           ) |>
-        str_remove(
+        stringr::str_remove(
           "\\."
           ) |>
-        str_remove(
+        stringr::str_remove(
           "-"
           )
     ) |>
-    select(
+    dplyr::select(
       -street,
       -street2
     ) |> 
-    rename(
+    dplyr::rename(
       `Unique ID Number` = cm_id,
       MRN = mrn_mercy,
       `First Name` = client_first,
@@ -1520,7 +1569,7 @@ transform_complex_care_alert_watchlist <- function(
       Cohort = cohort,
       Agency = agency
     ) |>
-    select(
+    dplyr::select(
       -unit
       )
 }
@@ -1566,8 +1615,10 @@ run_complex_care_etl <- function(
   complex_care_ext_mercy_utilization_raw,
   complex_care_ext_mercy_utilization_transformed,
   complex_care_ext_atd_notifications,
-  complex_care_ext_atd_watchlist,
   complex_care_ext_pfp_service_history,
+  complex_care_ext_pfp_metrics_legacy,
+  complex_care_ext_pcc_facility_lut,
+  complex_care_ext_eto_roster,
   start_date = NULL,
   end_date = NULL,
   fiscal_system = c(
@@ -1621,8 +1672,10 @@ run_complex_care_etl <- function(
     complex_care_ext_mercy_utilization_transformed = 
       complex_care_ext_mercy_utilization_transformed,
     complex_care_ext_atd_notifications = complex_care_ext_atd_notifications,
-    complex_care_ext_atd_watchlist = complex_care_ext_atd_watchlist,
-    complex_care_ext_pfp_service_history = complex_care_ext_pfp_service_history
+    complex_care_ext_pfp_service_history = complex_care_ext_pfp_service_history,
+    complex_care_ext_pfp_metrics_legacy = complex_care_ext_pfp_metrics_legacy,
+    complex_care_ext_pcc_facility_lut = complex_care_ext_pcc_facility_lut,
+    complex_care_ext_eto_roster = complex_care_ext_eto_roster
   )
   
   # ===
@@ -1664,7 +1717,7 @@ run_complex_care_etl <- function(
   # ===
   list(
     raw = complex_care_raw[
-      setdiff(
+      base::setdiff(
         names(complex_care_raw),
         "complex_care_ext_mercy_utilization_transformed"
       )
