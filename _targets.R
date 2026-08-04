@@ -1779,7 +1779,8 @@ targets::tar_target(
      bcr_active_payor_source = bcr_active_payor_source_raw,
      bcr_all_payor_source = bcr_all_payor_source_raw,
      bcr_active_housing = bcr_active_housing_raw,
-     bcr_all_housing = bcr_all_housing_raw
+     bcr_all_housing = bcr_all_housing_raw,
+     bcr_referral_subtype_map = bcr_referral_subtype_map
    )
  ),
 
@@ -2121,7 +2122,69 @@ targets::tar_target(
   format = "file"
 ),
 
- ## BCR ----
+## FAMCare Master Tables LUT RDS ----
+
+# These are rds outputs so they will be avaialble to downstream dependencies,
+# but they are not defined as file targets because these targets concern
+# metadata.
+
+targets::tar_target(
+  master_tables,
+  load_master_tables(
+    "P:/DATA/LUTs/FC_Master_Tables.xlsx"
+    ),
+  format = "rds"
+),
+
+targets::tar_target(
+  master_lookup,
+  get_master_lookup(
+    "P:/DATA/LUTs/FC_Master_Tables.xlsx"
+    ),
+  format = "rds"
+),
+
+### BCR Master Table LUTs RDS ----
+  
+tar_target(
+  bcr_referral_subtype_map,
+  {
+    bcr_referral_type_map <- tibble::tibble(
+      master_table_name = c(
+        "bcr_ref_placed_bh_subtype",
+        "bcr_ref_placed_housing_subtype",
+        "bcr_ref_placed_phys_health_sub",
+        "bcr_ref_placed_social_subtype"
+      ),
+      referral_type = c(
+        "behavioral_health",
+        "housing",
+        "physical_health",
+        "social_services"
+      )
+    )
+    
+    master_lookup %>%
+      dplyr::filter(
+        master_table_name %in% bcr_referral_type_map$master_table_name
+        ) %>%
+      dplyr::left_join(
+        bcr_referral_type_map,
+        by = "master_table_name"
+        ) %>%
+      dplyr::select(
+        master_table_name,
+        referral_type,
+        code,
+        description,
+        status,
+        subtype
+      )
+  },
+  format = "rds"
+),
+
+ ## BCR ETL RDS ----
 
  targets::tar_target(
   bcr_etl_rds,
@@ -2138,7 +2201,7 @@ targets::tar_target(
   format = "file"
  ),
 
- ## Complex Care ----
+ ## Complex Care ETL RDS ----
 
  targets::tar_target(
   complex_care_etl_rds,
@@ -2155,7 +2218,7 @@ targets::tar_target(
   format = "file"
  ),
 
- ## EPICC ----
+ ## EPICC ETL RDS----
 
  targets::tar_target(
   epicc_etl_rds,
@@ -2174,7 +2237,7 @@ targets::tar_target(
   format = "file"
  ),
 
- ## ERE ----
+ ## ERE ETL RDS ----
 
  targets::tar_target(
   ere_etl_rds,
@@ -2191,7 +2254,7 @@ targets::tar_target(
   format = "file"
  ),
 
- ## YERE ----
+ ## YERE ETL RDS ----
 
  targets::tar_target(
   yere_etl_rds,
@@ -2208,7 +2271,7 @@ targets::tar_target(
   format = "file"
  ),
  
- ## BHN-Wide ----
+ ## BHN-Wide ETL RDS ----
  
 targets::tar_target(
   bhn_wide_rds,
