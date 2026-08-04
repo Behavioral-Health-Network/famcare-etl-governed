@@ -128,6 +128,156 @@
 # ===
 
 # ===
+# 0. Program-Specific Helper Functions ----
+# ===
+bcr_detect_rp_subtypes <- function(
+    rp
+    ) {
+  rp_cols <- names(
+    rp
+    )
+  
+  placed_cols <- rp_cols[grepl("_ref_placed$", rp_cols)]
+  
+  
+  
+  tibble::tibble(
+    placed_col = placed_cols,
+    subtype = gsub(
+      "_ref_placed$",
+      "",
+      placed_cols
+      )
+  ) %>%
+    dplyr::mutate(
+      subtype_clean = sub(
+        "^rp_",
+        "",
+        subtype
+        ),
+      
+      agency_col = paste0(
+        "rp_",
+        subtype_clean,
+        "_agency"
+        ),
+      agency_desc_col = paste0(
+        "rp_",
+        subtype_clean,
+        "_agency_desc"
+        ),
+      
+      date_col = dplyr::case_when(
+        paste0(
+          "rp_date_",
+          subtype_clean,
+          "_ref_placed"
+          ) %in% rp_cols ~ paste0(
+            "rp_date_",
+            subtype_clean,
+            "_ref_placed"
+            ),
+        paste0(
+          "rp_date_",
+          subtype_clean,
+          "_ref"
+          ) %in% rp_cols ~ paste0(
+            "rp_date_",
+            subtype_clean,
+            "_ref"
+            ),
+        .default = NA_character_
+      )
+    )
+}
+
+bcr_build_rp_subtype_map <- function(
+    bcr_referral_subtype_map,
+    rp
+) {
+  bcr_detect_rp_subtypes(
+    rp
+  ) %>%
+    dplyr::left_join(
+      bcr_referral_subtype_map,
+      by = c(
+        "subtype_clean" = "subtype"
+      )
+    )
+}
+
+# Pivot Referrals Placed to long tibble
+bcr_pivot_rp_long <- function(
+    rp,
+    subtype_map
+) {
+  purrr::map_dfr(
+    seq_len(
+      nrow(
+        subtype_map
+      )
+    ),
+    function(
+    i
+    ) {
+      # Convert the one-row tibble to list then scalar strings then list
+      # (convoluted, I know, but necessary)
+      m <- subtype_map[i, ] |>
+        as.list() |>
+        purrr::map_chr(
+          ~ vctrs::vec_cast(
+            .x,
+            character())[1]
+        ) |>
+        as.list()
+      
+      rp |> 
+        dplyr::mutate(
+          referral_type = m$referral_type,
+          referral_subtype = m$subtype,
+          referral_code = m$code,
+          referral_desc = m$description,
+          referral_status = m$status,
+          referral_placed = rp[[m$placed_col]],
+          agency_name = rp[[m$agency_desc_col]],
+          referral_date = if (!is.na(m$date_col)) rp[[m$date_col]] else NA
+        ) |>  
+        dplyr::filter(
+          referral_placed == 1
+          ) |> 
+        dplyr::select(
+          client_number,
+          tiedenrollment,
+          referral_type,
+          referral_subtype,
+          referral_code,
+          referral_desc,
+          referral_status,
+          referral_placed,
+          agency_name,
+          referral_date,
+          rp_unmet_needs,
+          rp_unmet_needs_exp
+        )
+    }
+  )
+}
+
+# subtype_map <- bcr_build_rp_subtype_map(
+#   bcr_referral_subtype_map,
+#   rp
+# ) |> 
+#   dplyr::filter(
+#     agency_desc_col %in% names(
+#       rp
+#     )
+#   )
+
+# rp_long <- bcr_pivot_rp_long(
+#   rp,
+#   subtype_map
+# )
+# ===
 # 1. List file paths for all data source files. ----
 #   - Uses function make_path() from helpers.R.
 # ===
@@ -432,14 +582,14 @@ load_bcr_all_housing <- function(
 # troubleshooting.
 # ===
 
-# ===
-# Transform bcr_pathclient ----
-#   - PathClient is the authoritative event timeline (enrollment, dismissal,
-#       pathway events)
-#   - Pivot to one row per enrollment
-#   - Drop Pathway metadata columns
-#   - Keep analytic fields (enrollment dates, dismissal, agency, etc.)
-# ===
+## ===
+## 3a. Transform bcr_pathclient ----
+##   - PathClient is the authoritative event timeline (enrollment, dismissal,
+##       pathway events)
+##   - Pivot to one row per enrollment
+##   - Drop Pathway metadata columns
+##   - Keep analytic fields (enrollment dates, dismissal, agency, etc.)
+## ===
 transform_bcr_pathclient <- function(
   bcr
 ) {
@@ -616,15 +766,16 @@ transform_bcr_pathclient <- function(
   )
 }
 
-# ===
-# Transform referral flow ----
-#   - Joins REF, IC, RP
-#   - Prefixes all columns except tiedenrollment
-#   - Joins SCD summation tables (presconcerns, payor, housing) to ALL parent forms
-#   - Collapses SCD summation tables to one active row per enrollment
-# ===
+## ===
+## 3b. Transform referral flow ----
+##   - Joins REF, IC, RP
+##   - Prefixes all columns except tiedenrollment
+##   - Joins SCD summation tables (presconcerns, payor, housing) to ALL parent forms
+##   - Collapses SCD summation tables to one active row per enrollment
+## ===
 transform_bcr_referral_flow <- function(
-  bcr
+  bcr,
+  bcr_referral_subtype_map
 ) {
 
   # Helper to prefix all columns except tiedenrollment and client_number and
@@ -938,6 +1089,21 @@ transform_bcr_referral_flow <- function(
       )
     )
 
+  subtype_map <- bcr_build_rp_subtype_map(
+    bcr_referral_subtype_map,
+    rp
+  ) |>
+    dplyr::filter(
+      agency_desc_col %in% names(
+        rp
+      )
+    )
+  
+  rp_long <- bcr_pivot_rp_long(
+    rp,
+    subtype_map
+    )
+  
   # Store the final joined referral flow table
   output <- list(
     scd = list(
@@ -950,6 +1116,7 @@ transform_bcr_referral_flow <- function(
       ref = ref,
       ic = ic,
       rp = rp,
+      rp_long = rp_long,
       ccs = ccs
     ),
     joined_referral_flow = joined
@@ -1000,6 +1167,7 @@ run_bcr_etl <- function(
     bcr_all_payor_source,
     bcr_active_housing,
     bcr_all_housing,
+    bcr_referral_subtype_map,
     start_date = NULL,
     end_date = NULL,
     fiscal_system = c(
@@ -1054,7 +1222,8 @@ run_bcr_etl <- function(
   bcr_raw$pathclient <- pathclient$joined_pathclient
 
   referral_flow <- transform_bcr_referral_flow(
-    bcr_raw
+    bcr_raw,
+    bcr_referral_subtype_map
   )
 
   full <- extract_bcr_full_data(
