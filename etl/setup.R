@@ -101,6 +101,14 @@ source(
   )
 )
 
+source(
+  file.path(
+    root,
+    "R",
+    "master_tables.R"
+  )
+)
+
 # ===
 # END OF SETUP
 # ===
