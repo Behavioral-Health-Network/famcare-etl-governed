@@ -574,9 +574,11 @@ transform_complex_care_pathclient <- function(
 ) {
   # Load raw pathclient extract, which is duplicated by Pathway Event form rows
   df <- complex_care$complex_care_pathclient |>
-    dplyr::filter(
-      !is.na(
-        tiedenrollment
+    dplyr::mutate(
+      imported = grepl(
+        "^import",
+        pec_userid,
+        ignore.case = TRUE
       )
     )
 
@@ -589,7 +591,8 @@ transform_complex_care_pathclient <- function(
         pwy_event,
         "Complex Care Roster" = "roster_docserno",
         "Clinical BEACN Metrics" = "pfp_metrics_docserno",
-        "PfP Discharge" = "pfp_discharge_docserno"
+        "PfP Discharge" = "pfp_discharge_docserno",
+        "Complex Care Outreach Note" = "ccnotes_docserno"
       )
     )
 
@@ -599,6 +602,7 @@ transform_complex_care_pathclient <- function(
   enrollment_cols <- c(
     "client_number",
     "tiedenrollment",
+    "imported",
     "client_last",
     "client_first",
     "enrollment_starting_date",
@@ -606,7 +610,6 @@ transform_complex_care_pathclient <- function(
     "dismissal_reason_description",
     "age_at_enrollment",
     "agency_description",
-    "enroll_path_join_source",
     "pwy_start_date",
     "pwy_end_date",
     "program_worker_employee_number",
@@ -619,13 +622,31 @@ transform_complex_care_pathclient <- function(
       tidyselect::all_of(
         enrollment_cols
       )
-    ) |>
-    dplyr::distinct(
+    ) |> 
+    # group by enrollment_starting_date and client_number. Originally, this step
+    # relied on distinct() with client_number and tiedenrollment, which was
+    # stable and workable until I was required to remove the filter
+    # !is.na(tiedenrollment) at the top of this function in order to allow
+    # legacy ETO enrollments to remain in the ETL so that the legacy ETO Roster
+    # and legacy PfP Metrics data could be joined. enrollment_starting_date is a
+    # true episode key, so this should be safe as an alternative to removing
+    # rows on the basis of tiedenrollment.
+    dplyr::group_by(
       client_number,
-      tiedenrollment,
-      .keep_all = TRUE
+      enrollment_starting_date
+      ) |>
+    dplyr::summarise(
+      dplyr::across(
+        dplyr::everything(),
+        ~ dplyr::first(
+          na.omit(
+            .x
+            )
+          )
+      ),
+      .groups = "drop"
     )
-
+  
   # Merge client demographics
   enrollment <- enrollment |>
     dplyr::left_join(
@@ -1085,11 +1106,15 @@ transform_complex_care_ext_mercy_utilization <- function(
 #   - Collapses SCD summation tables to one active row per enrollment
 # ===
 transform_complex_care_referral_flow <- function(
-  complex_care
+    complex_care,
+    complex_care_ext_pcc_facility_lut
 ) {
 
-  # Helper to prefix all columns except tiedenrollment and client_number and
-  # also to drop metadata
+  ### ===
+  ### 1. Helper to prefix columns ----
+  ###       - prefixes all columns except tiedenrollment and client_number and
+  ###       - also drops metadata
+
   clean_form <- function(
     df,
     prefix
@@ -1138,7 +1163,10 @@ transform_complex_care_referral_flow <- function(
       )
   }
 
-  # Clean each active SCD summation tables
+  ### ===
+  ### 2. Clean each active SCD summation tables ----
+  ### ===
+
   payor <- clean_form(
     complex_care$complex_care_active_payor_source,
     "payor_"
@@ -1183,9 +1211,13 @@ transform_complex_care_referral_flow <- function(
       -client_number
     )
 
-  # Drop docserno from parent event forms to avoid suffix collisions (.x/.y) due
-  # to duplication when joining with pathclient. Pathclient is the authoritative
-  # source of docserno values.
+  ### ===
+  ### 3. Drop docserno from parent event forms ----
+  ###      - this avoids suffix collisions (.x/.y) due to duplication when
+  ###          joining with pathclient.
+  ###      - Pathclient is the authoritativesource of docserno values.
+  ### ===
+
   roster <- clean_form(
     complex_care$complex_care_roster,
     "roster_"
@@ -1226,18 +1258,27 @@ transform_complex_care_referral_flow <- function(
       )
     )
   
-  # Start with pivoted pathclient
+  ### ===
+  ### 4. Start with pivoted pathclient ----
+  ### ===
+
   pc <- complex_care$pathclient
 
-  # Invariant: parent_map must contain exactly one row per (client_number,
-  # tiedenrollment, parent_docserno). If this is violated, SCD collapse will
-  # fail. The result is a long form tibble
+  ### ===
+  ### 5. Build parent_map ----
+  ###      - Invariant: parent_map must contain exactly one row per
+  ###          (client_number, tiedenrollment, parent_docserno). If this is
+  ###          violated, SCD collapse will fail. The result is a long form 
+  ###          tibble.
+  ### ===
+
   parent_map <- pc |>
     dplyr::select(
       client_number,
       tiedenrollment,
       roster_docserno,
       pfp_metrics_docserno,
+      ccnotes_docserno,
       pfp_discharge_docserno
     ) |>
     tidyr::pivot_longer(
@@ -1253,7 +1294,10 @@ transform_complex_care_referral_flow <- function(
       )
     )
 
-  # Helper: collapse SCD table to one row per enrollment
+  ### ===
+  ### 6. Helper: collapse SCD table to one row per enrollment ----
+  ### ===
+
   collapse_scd <- function(
     scd_tbl
   ) {
@@ -1286,6 +1330,10 @@ transform_complex_care_referral_flow <- function(
       )
   }
 
+  ### ===
+  ### 7. Apply collapse_scd() to relevant tables ----
+  ### ===
+  
   # Diagnostic: payor_one shows which active payor source SCD row was selected
   # for each enrollment. Useful for debugging missing or stale SCD values.
   payor_one   <- collapse_scd(
@@ -1317,7 +1365,9 @@ transform_complex_care_referral_flow <- function(
     qol
   )
 
-  # Start join sequence with joined "authoritative" pathclient
+  ### ===
+  ### 8. Start join sequence with joined "authoritative" pathclient ----
+  ### ===
   joined <- pc |>
     # Join SCD "active" summaries once per enrollment
     dplyr::left_join(
@@ -1383,7 +1433,491 @@ transform_complex_care_referral_flow <- function(
       )
     )
 
-  # Store the final joined referral flow table
+  ### ===
+  ### 9. Join legacy ETO Roster data to imported enrollment data ----
+  ### ===
+
+  # Select the join key and the date added to cohort.
+  eto_roster <- complex_care$complex_care_ext_eto_roster |> 
+    dplyr::select(
+      eto_case_num,
+      added_cohort_date = date_taken_complex_care_roster
+    )
+  
+  # Join ETO Roster records to all FAMCare enrollments using client number. This
+  # will result in duplication, which is expected. This will be filtered to the
+  # correct enrollments in stages.
+  pc_eto <- joined |> 
+    dplyr::left_join(
+      eto_roster,
+      by = "eto_case_num",
+      ,
+      relationship = "many-to-many"
+    )
+  
+  ### ===
+  ### 10. Filter to identify valid enrollments for ETO Roster records ----
+  ### ===
+  
+  # Filter to valid enrollments
+  pc_eto_valid <- pc_eto |> 
+    filter(
+      enrollment_starting_date <= added_cohort_date
+    )
+  
+  ### ===
+  ### 11. Filter to identify the correct enrollment for ETO Roster records ----
+  ### ===
+  
+  # Select the correct enrollment per ETO roster entry
+  pc_eto_correct <- pc_eto_valid |> 
+    dplyr::group_by(
+      eto_case_num,
+      added_cohort_date
+    ) |> 
+    dplyr::slice_max(
+      enrollment_starting_date,
+      with_ties = FALSE
+    ) |> 
+    dplyr::ungroup()
+  
+  ### ===
+  ### 12. Filter to just imported records ----
+  ###       - if the pec_user_id still starts with 'imported', then the row is 
+  ###           most likely not one that was actively worked in FAMCare
+  ### ===
+  
+  # Filter to imported enrollments only (recognizing that form data was imported
+  # for clients with active programs at the end of calendar year 2024, which
+  # will be addressed using coalesce())
+  pc_eto_imported <- pc_eto_correct|>
+    dplyr::filter(
+      imported == TRUE
+      )
+  
+  ### ===
+  ### 13. Join mapped ETO roster data to the joined referral_flow object ----
+  ### ===
+  
+  # Now join mapped ETO roster data to the joined object.
+  joined <- joined |> 
+    dplyr::left_join(
+      pc_eto_imported|>
+        dplyr::select(
+          client_number,
+          enrollment_starting_date,
+          added_cohort_date
+        ),
+      by = c(
+        "client_number",
+        "enrollment_starting_date"
+        )
+    ) |> 
+    dplyr::mutate(
+      roster_added_cohort_date = dplyr::if_else(
+          imported & is.na(
+            roster_added_cohort_date
+            ),
+          added_cohort_date,
+          roster_added_cohort_date
+        )
+    ) |> 
+    dplyr::select(
+      -added_cohort_date
+    )
+  
+  ### ===
+  ### 14. Prep the legacy PFP Metrics data for joining ----
+  ### ===
+  
+  pfp_legacy <- complex_care$complex_care_ext_pfp_metrics_legacy |>
+    dplyr::select(
+      mrn_mercy,
+      legacy_enrollment_date = enrollment_date
+    )
+  
+  ### ===
+  ### 15. Join the legacy PFP metrics data to the joined object ----
+  ###       - Join, conditionally fill benchmarks_enrollment_date, and drop the
+  ###           legacy_enrollment_date columns as it will no longer be needed.
+  ### ===
+  
+  joined <- joined |>
+    dplyr::left_join(
+      pfp_legacy,
+      by = "mrn_mercy"
+    ) |>
+    dplyr::mutate(
+      benchmarks_enrollment_date =
+        dplyr::if_else(
+          imported & is.na(
+            benchmarks_enrollment_date
+            ),
+          legacy_enrollment_date,
+          benchmarks_enrollment_date
+        )
+    ) |>
+    dplyr::select(
+      -legacy_enrollment_date
+    )
+  
+  ### ===
+  ### 16. Build a mapping tibble of identifiers ----
+  ###       - Select legacy eto_case_num, FAMCare client number, and mrn_mercy
+  ###           to allow for joining mrn_mercy to the 
+  ###           complex_care_ext_atd_notifications table. Since this includes 
+  ###           legacy ETO clients, some will have eto_case_num but not all
+  ###           will.
+  ### ===
+  
+  id_map <- joined |>
+    dplyr::select(
+      client_number,
+      eto_case_num,
+      mrn_mercy
+    )
+  
+  ### ===
+  ### 17. Prep transformed mapping tibble with both identifiers on each row ----
+  ###       - Two separate left joins will not allow us to capture both FAMCare
+  ###           and ETO client identifiers on the row since the PCC member_id
+  ###           will only match either client_number or eto_case_num (except for
+  ###           the exceptions that have both).
+  ###       - To ensure that the ATD rows get both identifiers, create a 
+  ###           universal map where join_id = client_number and join_id = 
+  ###           eto_case_num. With these bound together, the result is a mapping
+  ###           table where both identifiers point to the same client-level row.
+  ### ===
+  
+  id_map_universal <- id_map |>
+    dplyr::mutate(
+      join_id = client_number
+    ) |>
+    dplyr::bind_rows(
+      id_map |>
+        dplyr::mutate(
+          join_id = eto_case_num
+        )
+    )
+  
+  ### ===
+  ### 18. Load and clean raw notifications data to atd. ----
+  ###       - Since notifications are duplicated by notification_type,
+  ###           notification_destination, and potentially other columns, remove
+  ###           all but the core notifications columns and use distinct() to 
+  ###           ensure that atd contains one row per ATD alert for each 
+  ###           admit_date.
+  ### ===
+
+  atd <- complex_care$complex_care_ext_atd_notifications |> 
+    dplyr::filter(
+      !is.na(
+        admit_date
+      )
+    ) |> 
+    dplyr::select(
+      -diagnoses,
+      -notification_type,
+      -notification_destination,
+      -review_encounter,
+      -reviewed_encounter_author,
+      -reviewed_encounter_date,
+      -reviewed_notes
+    ) |> 
+    dplyr::distinct() |> 
+    dplyr::rename_with(
+      ~ paste0(
+        "atd_",
+        .x
+        )
+    )
+  
+  ### ===
+  ### 19. Join the universal identifier map to atd.
+  ###       - Fill identifiers across all rows for each member_id. This ensures
+  ###           that each row has client_number, eto_case_num, and mrn_mercy
+  ###           when these are present in the data. Those that don't result in a
+  ###           match for mrn_mercy get filtered out.
+  ###       - These are almost certainly entirely ERE ATD notifications that are
+  ###           present in the notifications report.
+  ###       - Performs a final de-duplication.
+  ### ===
+
+  atd_joined <- atd |>
+    dplyr::left_join(
+      id_map_universal,
+      by = c(
+        "atd_member_id" = "join_id"
+        )
+    ) |> 
+    dplyr::group_by(
+      atd_member_id
+    ) |> 
+    tidyr::fill(
+      client_number,
+      eto_case_num,
+      mrn_mercy,
+      .direction = "downup"
+    ) |> 
+    dplyr::ungroup() |> 
+    dplyr::filter(
+      !is.na(
+        mrn_mercy
+      )
+    ) |> 
+    dplyr::distinct()
+  
+  ### ===
+  ### 19. Attach ALL complex care episodes of care for each MRN. ----
+  ###       - This creates a many-to-many structure: each alert is paired with
+  ###           every episode for that patient.
+  ###       - Temporal filtering will narrow this down.
+  ### ===
+  
+  atd_with_all_episodes <- atd_joined |>
+    dplyr::left_join(
+      joined |>
+        dplyr::select(
+          mrn_mercy,
+          enrollment_starting_date,
+          enrollment_ending_date,
+          roster_added_cohort_date,
+          benchmarks_enrollment_date
+        ),
+      by = dplyr::join_by(
+        mrn_mercy == mrn_mercy
+      ),
+      relationship = "many-to-many"
+    )
+  
+  ### ===
+  ### 20. Filter to valid episodes ----
+  ###       - Keep only episodes that were active ON or BEFORE the alert date.
+  ###       - Episodes after the alert date are excluded.
+  ###       - Episodes that ended before the alert date are excluded.
+  ### ===
+
+  atd_with_valid_episodes <- atd_with_all_episodes |>
+    dplyr::filter(
+      roster_added_cohort_date <= atd_admit_date,
+      is.na(
+        enrollment_ending_date
+        ) | atd_admit_date < enrollment_ending_date
+    )
+  
+  ### ===
+  ### 21. Group and slice to identify the correc episodes. ----
+  ###       - For each alert, select the cohort episode with the MOST RECENT
+  ###           roster_added_cohort_date. This assigns each alert to the correct
+  ###           episode of care.
+  ### ===
+
+  atd_with_correct_episode <- atd_with_valid_episodes |>
+    dplyr::group_by(
+      mrn_mercy,
+      atd_admit_date
+    ) |>
+    dplyr::slice_max(
+      roster_added_cohort_date,
+      with_ties = FALSE
+    ) |>
+    dplyr::ungroup()
+  
+  ### ===
+  ### 22. Create an outreach hours LUT ----
+  ###       - To be used to identify working days and hours for the outreach
+  ###           team. This will be used to flag alerts as within working hours.
+  ### ===
+
+  outreach_hours <- tidyr::tibble(
+    dow = factor(
+      c(
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      ),
+      levels = c(
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      )
+    ),
+    start_hour = c(
+      8,
+      8,
+      8,
+      8,
+      8
+    ),
+    end_hour = c(
+      17,
+      17,
+      17,
+      17,
+      17
+    )
+  ) |>
+    # Add dow_chr to provide the join key. dow is an ordered factor and won't join
+    # with atd_alert_dow in the upcoming tibbles, since that is a regular factor.
+    dplyr::mutate(
+      dow_chr = as.character(
+        dow
+      )
+    )
+  
+  ### ===
+  ### 23. Create atd_temporal for timing and calendar analysis of alerts ----
+  ### ===
+
+  atd_temporal <- atd_with_correct_episode|>
+    dplyr::mutate(
+      # Core alert datetime fields
+      atd_alert_date_time = atd_admit_date,
+      atd_alert_date = as.Date(
+        atd_alert_date_time
+      ),
+      # Day-of-week (ordered factor, full names)
+      atd_alert_dow = lubridate::wday(
+        atd_alert_date_time,
+        label = TRUE,
+        abbr = FALSE,
+        week_start = 7 # Sunday = 7
+      ),
+      # Hour of day (0-23)
+      atd_alert_hour = lubridate::hour(
+        atd_alert_date_time
+      ),
+      # Week of Month (for calendar-style heatmap)
+      atd_week_of_month = ceiling(
+        lubridate::day(
+          atd_alert_date_time
+        ) / 7
+      ),
+      # ISO week and year (for faceting or longitudinal trends)
+      atd_iso_week = lubridate::isoweek(
+        atd_alert_date_time
+      ),
+      atd_iso_year = lubridate::isoyear(
+        atd_alert_date_time
+      ),
+      # Relative timing to cohort selection
+      atd_days_since_cohort = as.numeric(
+        atd_alert_date - roster_added_cohort_date
+      ),
+      # Relative timing to enrollment
+      atd_days_since_enroll = as.numeric(
+        atd_alert_date - benchmarks_enrollment_date
+      )
+    ) |>
+    # Add atd_alert_dow_chr to provide a join key. An ordered factor won't join with a
+    # regular factor, so this adds a column as character to ensure type matching.
+    dplyr::mutate(
+      atd_alert_dow_chr = as.character(
+        atd_alert_dow
+      )
+    ) |>
+    dplyr::left_join(
+      outreach_hours,
+      by = dplyr::join_by(
+        "atd_alert_dow_chr" == "dow_chr"
+      )
+    ) |>
+    dplyr::rename(
+      atd_start_hour = start_hour,
+      atd_end_hour = end_hour,
+      atd_dow = dow
+    ) |> 
+    dplyr::mutate(
+      atd_in_outreach_day= !is.na(
+        atd_start_hour
+      ),
+      atd_in_outreach_hours = atd_in_outreach_day &
+        atd_alert_hour >= atd_start_hour &
+        atd_alert_hour < atd_end_hour,
+      atd_hour_type = dplyr::case_when(
+        atd_alert_dow %in% c(
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ) & 
+          atd_alert_hour >= 8 &
+          atd_alert_hour < 17 ~ 
+          "Weekday Working Hours",
+        atd_alert_dow %in% c(
+          "Saturday",
+          "Sunday"
+        ) ~
+          "Weekend Hours",
+        .default = "Outside Weekday Working Hours"
+      )
+    ) |>
+    dplyr::mutate(
+      enrollment_status = dplyr::case_when(
+        !is.na(
+          benchmarks_enrollment_date
+        ) ~ "Enrolled",
+        !is.na(
+          roster_added_cohort_date
+        ) ~ "In Outreach",
+        .default = "Not in Cohort"
+      )
+    ) |>
+    dplyr::group_by(
+      mrn_mercy
+    )|>
+    dplyr::mutate(
+      atd_total_alert_count = n()
+    )|>
+    dplyr::ungroup() |>
+    dplyr::group_by(
+      mrn_mercy,
+      roster_added_cohort_date
+    ) |>
+    dplyr::mutate(
+      # Identify the last alert date for each patient
+      atd_last_alert_date_per_episode_of_care = max(
+        atd_alert_date,
+        na.rm = TRUE
+      ),
+      .after = atd_alert_date,
+      # Relative timing to latest alert after cohort selection
+      atd_days_cohort_to_last_alert = as.numeric(
+        atd_last_alert_date_per_episode_of_care - roster_added_cohort_date
+      )
+    ) |>
+    dplyr::ungroup() |>
+    dplyr::relocate(
+      c(
+        atd_dow,
+        atd_alert_dow,
+        atd_alert_dow_chr
+      ),
+      .after = atd_last_alert_date_per_episode_of_care
+    ) |>
+    dplyr::relocate(
+      c(
+        atd_days_since_cohort,
+        atd_days_since_enroll,
+      ),
+      .before = atd_days_cohort_to_last_alert
+    ) |> 
+    dplyr::left_join(
+      complex_care_ext_pcc_facility_lut,
+      by = dplyr::join_by(
+        "atd_visit_facility" == "visit_facility"
+      )
+    )
+  
+  ### ===
+  ### 24. Store the final joined referral flow table and return it. ----
+  ### ===
+
   output <- list(
     scd = list(
       shelter_beds_one = shelter_beds_one,
@@ -1402,7 +1936,7 @@ transform_complex_care_referral_flow <- function(
     
     ext_mercy_utilization = 
       complex_care$complex_care_ext_mercy_utilization_transformed,
-    ext_atd_notifications = complex_care$complex_care_ext_atd_notifications,
+    ext_atd_notifications = atd_temporal,
     ext_pfp_service_history = complex_care$complex_care_ext_pfp_service_history,
     ext_pfp_metrics_legacy = complex_care$complex_care_ext_pfp_metrics_legacy,
     ext_pcc_facility_lut = complex_care$complex_care_ext_pcc_facility_lut,
@@ -1418,7 +1952,7 @@ transform_complex_care_referral_flow <- function(
 
 # ===
 ## 3d. Transform Alert Watchlist ----
-#   - builds a tibble but does not perform file writes, are handled by
+#   - builds a tibble but does not perform file writes, which are handled by
 #       {targets}
 # ===
 
@@ -1688,7 +2222,8 @@ run_complex_care_etl <- function(
   complex_care_raw$pathclient <- pathclient$joined_pathclient
 
   referral_flow <- transform_complex_care_referral_flow(
-    complex_care_raw
+    complex_care_raw,
+    complex_care_ext_pcc_facility_lut
   )
 
   full <- extract_complex_care_full_data(
