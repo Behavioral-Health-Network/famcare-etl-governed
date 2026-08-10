@@ -2,6 +2,154 @@
 # famcare-etl-governed: Unified ETL Pipeline ----
 # ===
 
+# ===
+# Overview ----
+# ===
+# 
+# This pipeline uses a layered target architecture to support:
+#   • deterministic ETL execution,
+#   • explicit dependency management,
+#   • program‑specific transforms,
+#   • shared LUTs and cartography assets,
+#   • and rich diagnostic visibility into intermediate objects.
+#
+# The pipeline is organized into several *types* of targets. Understanding these
+# layers is essential for debugging, extending, and safely refactoring the ETL.
+#
+# ===
+## 1. RAW FILE TARGETS (format = "file") ----
+# ===
+# 
+# These targets point to the physical source files for each program. They do not
+# read data; they only declare file paths. They allow {targets} to track file
+# changes and invalidate downstream targets when source files update.
+#
+# Example:
+#   complex_care_pathclient_file
+#   epicc_ref_file
+#
+# ===
+## 2. RAW READ TARGETS (load_*_file_name) ----
+# ===
+# 
+# These targets read the raw files into memory using the analytic_fields 
+# metadata sheet. They produce the “*_raw” tibbles that feed the program ETLs.
+#
+# Example:
+#   complex_care_pathclient_raw
+#   epicc_client_raw
+#
+# ===
+## 3. CORE TRANSFORM TARGETS (the *_core layer) ----
+# ===
+# 
+# These targets run the actual transformation functions for each program. They
+# accept dependency targets explicitly (e.g., lookup tables, cartography 
+# bundles, facility LUTs). This is the layer where dependency injection happens.
+#
+# Example:
+#   complex_care_pathclient_core
+#   complex_care_referral_flow_core
+#
+# These targets are the *true* ETL transforms. They should be used whenever
+# downstream logic needs the transformed data.
+#
+# ===
+## 4. DIAGNOSTIC TARGETS (the joined_* layer) ----
+# ===
+# 
+# These targets expose intermediate ETL outputs for QA, debugging, and
+# troubleshooting. They do NOT run the transform functions themselves; instead,
+# they reference the joined outputs produced inside the ETL scripts.
+#
+# Example:
+#   complex_care_referral_flow
+#   epicc_referral_flow
+#
+# Diagnostic targets allow developers to inspect intermediate objects without
+# re-running the entire ETL or navigating deeply into program-specific scripts.
+#
+# ===
+## 5. PROGRAM ETL TARGETS (run_*_etl) ----
+# ===
+# 
+# These targets assemble the full program ETLs, combining all core transforms,
+# raw reads, and external assets into unified program-level objects.
+#
+# Example:
+#   complex_care_etl
+#   epicc_etl
+#
+# ===
+## 6. FULL DATA TARGETS (*_full_data) ----
+# ===
+# 
+# These targets produce the final, unified datasets for each program. They are
+# used by downstream analytics, briefs, and reports.
+#
+# Example:
+#   complex_care_full_data
+#
+# ===
+## 7. BHN-WIDE TARGETS ----
+# ===
+# 
+# These targets combine multiple program datasets into cross-program analytics
+# and shared reporting structures.
+#
+# ===
+## 8. RDS OUTPUT TARGETS ----
+# ===
+# 
+# These targets write final datasets to RDS files for consumption outside the
+# pipeline.
+#
+# ===
+## 9. How to *use* targets interactively ----
+# ===
+# 
+# You do NOT need to run the entire pipeline to inspect or debug individual
+# objects. Use:
+#
+#   • targets::tar_make()  
+#       Runs the pipeline (incrementally) and builds all required targets.
+#
+#   • targets::tar_read(<target_name>)  
+#       Loads a specific target into your interactive R session.
+#
+# Examples:
+#   targets::tar_read(complex_care_referral_flow_core)
+#   targets::tar_read(complex_care_referral_flow)
+#   targets::tar_read(complex_care_full_data)
+#
+# This allows you to:
+#   – inspect intermediate objects,
+#   – debug joins,
+#   – validate transformations,
+#   – and explore program outputs without re-running the entire ETL.
+#
+# ===
+## 10. Summary of Usage ----
+# ===
+# 
+# • Use *_file targets when adding new source files.
+# • Use *_raw targets when debugging raw extract issues.
+# • Use *_core targets when extending or modifying ETL logic.
+# • Use diagnostic targets (joined_*) when validating intermediate joins.
+# • Use program_full_data targets for downstream analytics.
+#
+# This layered structure ensures:
+#   – explicit dependency graphs,
+#   – reproducible ETL runs,
+#   – modular program-specific transforms,
+#   – and transparent debugging at every stage.
+#
+# ===
+
+# ===
+# Load libraries ----
+# ===
+
 library(targets)
 library(tarchetypes)
 
@@ -36,7 +184,7 @@ targets::tar_option_set(
 list(
 
  # ===
- # VPN Check ----
+ ## A. VPN Check ----
  # ===
  
  targets::tar_target(
@@ -50,7 +198,7 @@ list(
  ),
 
  # ===
- # Metadata ----
+ ## B. Metadata ----
  # ===
  
  targets::tar_target(
@@ -150,7 +298,7 @@ list(
  ),
  
  # ===
- # Cartography targets ----
+ ## C. Cartography targets ----
  # ===
  
  targets::tar_target(
@@ -162,7 +310,7 @@ list(
  ),
  
  # ===
- # CCSR diagnosis LUT targets ----
+ ## D. CCSR diagnosis LUT targets ----
  # ===
  
  targets::tar_target(
@@ -174,7 +322,7 @@ list(
  ),
  
  # ===
- # PCC notification facilities LUT target ----
+ ## E. PCC notification facilities LUT target ----
  # ===
  
  tar_target(
@@ -189,10 +337,10 @@ list(
  ),
  
  # ===
- # Add extract FILE targets ----
+ ## F. Extract RAW FILE targets ----
  # ===
  
- ## BCR ----
+ ### BCR ----
  
  targets::tar_target(
    bcr_provider_placement_file,
@@ -320,7 +468,7 @@ list(
    format = "file"
  ),
  
- ## Complex Care ----
+ ### Complex Care ----
  
  targets::tar_target(
   complex_care_provider_placement_file,
@@ -493,7 +641,7 @@ targets::tar_target(
   format = "file"
 ),
 
- ## EPICC ----
+ ### EPICC ----
  
  targets::tar_target(
   epicc_provider_placement_file,
@@ -666,7 +814,7 @@ targets::tar_target(
   format = "file"
  ),
  
- ## ERE ----
+ ### ERE ----
  
  targets::tar_target(
   ere_provider_placement_file,
@@ -803,7 +951,7 @@ targets::tar_target(
   format = "file"
  ),
  
- ## YERE ----
+ ### YERE ----
  
  targets::tar_target(
   yere_provider_placement_file,
@@ -968,10 +1116,10 @@ targets::tar_target(
  ),
  
  # ===
- # Adds RAW-read targets that depend on file targets ----
+ ## G. RAW READ targets that depend on file targets ----
  # ===
  
- ## BCR ----
+ ### BCR ----
  
  targets::tar_target(
    bcr_provider_placement_raw,
@@ -1085,7 +1233,7 @@ targets::tar_target(
    )
  ),
  
- ## Complex Care ----
+ ### Complex Care ----
  
  targets::tar_target(
   complex_care_provider_placement_raw,
@@ -1256,7 +1404,7 @@ targets::tar_target(
   )
 ),
 
- ## EPICC ----
+ ### EPICC ----
  
  targets::tar_target(
   epicc_provider_placement_raw,
@@ -1410,7 +1558,7 @@ targets::tar_target(
   )
  ),
  
- ## ERE ----
+ ### ERE ----
  
  targets::tar_target(
   ere_provider_placement_raw,
@@ -1532,7 +1680,7 @@ targets::tar_target(
   )
  ),
  
- ## YERE ----
+ ### YERE ----
  
  targets::tar_target(
   yere_provider_placement_raw,
@@ -1679,12 +1827,61 @@ targets::tar_target(
   ),
  
   # ===
-  # Standalone EXT Asset Transformation Targets ----
+  ## H. Core Pathclient transformation targets ----
   # ===
   
-  ## BCR ----
+  ### BCR ----
   
-  ## Complex Care ----
+  targets::tar_target(
+    bcr_pathclient_core,
+    transform_bcr_pathclient(
+      bcr_etl$raw
+    )
+  ),
+
+  ### Complex Care ----
+  
+  targets::tar_target(
+    complex_care_pathclient_core,
+    transform_complex_care_pathclient(
+      complex_care_etl$raw
+    )
+  ),
+  
+  ### EPICC ----
+  
+  targets::tar_target(
+    epicc_pathclient_core,
+    transform_epicc_pathclient(
+      epicc_etl$raw
+    )
+  ),
+
+  ### ERE ----
+  
+  targets::tar_target(
+    ere_pathclient_core,
+    transform_ere_pathclient(
+      ere_etl$raw
+    )
+  ),
+
+  ### YERE ----
+
+  targets::tar_target(
+    yere_pathclient_core,
+    transform_yere_pathclient(
+      yere_etl$raw
+    )
+  ),
+
+  # ===
+  ## I. Standalone EXT Asset Transformation Targets ----
+  # ===
+  
+  ### BCR ----
+  
+  ### Complex Care ----
   targets::tar_target(
     complex_care_ext_mercy_utilization_transformed,
     transform_complex_care_ext_mercy_utilization(
@@ -1705,62 +1902,112 @@ targets::tar_target(
     complex_care_ext_pcc_facility_lut_raw
   ),
   
-  
   targets::tar_target(
     complex_care_ext_eto_roster,
     complex_care_ext_eto_roster_raw
   ),
   
-  ## EPICC ----
+  ### EPICC ----
   
-  ## ERE ----
+  ### ERE ----
   
-  ## YERE ----
+  ### YERE ----
 
   # ===
-  # Referral Flow Targets (required by diagnostics) ----
+  ## J. Core Referral Flow transformation targets ----
   # ===
   
-  ## BCR ----
+  ### BCR ----
+
+  targets::tar_target(
+    bcr_referral_flow_core,
+    transform_bcr_referral_flow(
+      bcr_etl$raw,
+      bcr_referral_subtype_map # passes the subtype_map dependency
+    )
+  ),
+
+  ### Complex Care ----
+
+  targets::tar_target(
+    complex_care_referral_flow_core,
+    transform_complex_care_referral_flow(
+      complex_care_etl$raw,
+      complex_care_ext_pcc_facility_lut # passes the pcc_facility_lut dependency
+    )
+  ),
+
+  ### EPICC ----
+  
+  targets::tar_target(
+    epicc_referral_flow_core,
+    transform_epicc_referral_flow(
+      epicc_etl$raw
+    )
+  ),
+
+  ### ERE ----
+  
+  targets::tar_target(
+    ere_referral_flow_core,
+    transform_ere_referral_flow(
+      ere_etl$raw
+    )
+  ),
+
+  ### YERE ----
+
+  targets::tar_target(
+    yere_referral_flow_core,
+    transform_yere_referral_flow(
+      yere_etl$raw
+    )
+  ),
+
+  # ===
+  ## K. Diagnostic Referral Flow targets ----
+  # ===
+  
+  ### BCR ----
   
   targets::tar_target(
     bcr_referral_flow,
-    bcr_etl$transform$referral_flow$joined_referral_flow
+    bcr_referral_flow_core
   ),
   
-  ## Complex Care ----
+  ### Complex Care ----
   
   targets::tar_target(
     complex_care_referral_flow,
-    complex_care_etl$transform$referral_flow$joined_referral_flow
+    complex_care_referral_flow_core
   ),
   
-  ## EPICC ----
+  ### EPICC ----
   
   targets::tar_target(
     epicc_referral_flow,
-    epicc_etl$transform$referral_flow$joined_referral_flow
+    epicc_referral_flow_core
   ),
   
-  ## ERE ----
+  ### ERE ----
   
   targets::tar_target(
     ere_referral_flow,
-    ere_etl$transform$referral_flow$joined_referral_flow
+    ere_referral_flow_core
   ),
   
-  ## YERE ----
+  ### YERE ----
   
   targets::tar_target(
     yere_referral_flow,
-    yere_etl$transform$referral_flow$joined_referral_flow
+    yere_referral_flow_core
   ),
 
  # ===
- # Program ETL branches (each returns a structured list) ----
+ ## L. Program ETL branches (each returns a structured list) ----
  # ===
 
- ## BCR ----
+ ### BCR ----
  
  targets::tar_target(
    bcr_etl,
@@ -1784,7 +2031,7 @@ targets::tar_target(
    )
  ),
 
- ## Complex Care ----
+ ### Complex Care ----
 
  targets::tar_target(
   complex_care_etl,
@@ -1818,7 +2065,7 @@ targets::tar_target(
   )
  ),
  
- ## EPICC ----
+ ### EPICC ----
 
  targets::tar_target(
   epicc_etl,
@@ -1846,7 +2093,7 @@ targets::tar_target(
   )
  ),
  
- ## ERE ----
+ ### ERE ----
 
  targets::tar_target(
   ere_etl,
@@ -1870,7 +2117,7 @@ targets::tar_target(
   )
  ),
  
-  ## YERE ----
+  ### YERE ----
 
  targets::tar_target(
   yere_etl,
@@ -1898,38 +2145,38 @@ targets::tar_target(
   ),
  
  # ===
- # FULL_DATA table convenience targets ----
+ ## M. FULL_DATA table convenience targets ----
  # ===
 
- ## BCR ----
+ ### BCR ----
 
  targets::tar_target(
   bcr_full_data,
   bcr_etl$bcr_full_data
  ),
  
- ## Complex Care ----
+ ### Complex Care ----
  
  targets::tar_target(
   complex_care_full_data,
   complex_care_etl$complex_care_full_data
  ),
  
- ## EPICC ----
+ ### EPICC ----
 
   targets::tar_target(
   epicc_full_data,
   epicc_etl$epicc_full_data
   ),
  
- ## ERE ----
+ ### ERE ----
 
   targets::tar_target(
   ere_full_data,
   ere_etl$ere_full_data
   ),
  
- ## YERE ----
+ ### YERE ----
 
  targets::tar_target(
   yere_full_data,
@@ -1937,7 +2184,7 @@ targets::tar_target(
   ),
 
  # ===
- # BHN-wide: fact table + program assets (unjoined) ----
+ ## N. BHN-wide: fact table + program assets (unjoined) ----
  # ===
  
  bhn_wide_paths <- list(
@@ -1974,7 +2221,7 @@ targets::tar_target(
  ),
 
 # ===
-# File WRITE Outputs (csv|xlsx) ----
+## O.  File WRITE Outputs (csv|xlsx) ----
 # ===
 
 # Write the PCC alerting watchlist to enterprise server
@@ -2030,10 +2277,10 @@ targets::tar_target(
 ),
 
 # ===
-# Cached outputs (RDS) ----
+## P. Cached outputs (RDS) ----
 # ===
  
-## Cartography Bundle ----
+### Cartography Bundle ----
 
 targets::tar_target(
   cartography_county_two_rds,
@@ -2103,7 +2350,7 @@ targets::tar_target(
   format = "file"
 ),
 
-## CCSR DX LUT ----
+### CCSR DX LUT ----
 
 targets::tar_target(
   ccsr_dx_lut_rds,
@@ -2122,7 +2369,7 @@ targets::tar_target(
   format = "file"
 ),
 
-## FAMCare Master Tables LUT RDS ----
+### FAMCare Master Tables LUT RDS ----
 
 # These are rds outputs so they will be avaialble to downstream dependencies,
 # but they are not defined as file targets because these targets concern
@@ -2144,7 +2391,7 @@ targets::tar_target(
   format = "rds"
 ),
 
-### BCR Master Table LUTs RDS ----
+#### BCR Master Table LUTs RDS ----
   
 tar_target(
   bcr_referral_subtype_map,
@@ -2184,7 +2431,7 @@ tar_target(
   format = "rds"
 ),
 
- ## BCR ETL RDS ----
+ ### BCR ETL RDS ----
 
  targets::tar_target(
   bcr_etl_rds,
@@ -2201,7 +2448,7 @@ tar_target(
   format = "file"
  ),
 
- ## Complex Care ETL RDS ----
+ ### Complex Care ETL RDS ----
 
  targets::tar_target(
   complex_care_etl_rds,
@@ -2218,7 +2465,7 @@ tar_target(
   format = "file"
  ),
 
- ## EPICC ETL RDS----
+ ### EPICC ETL RDS----
 
  targets::tar_target(
   epicc_etl_rds,
@@ -2237,7 +2484,7 @@ tar_target(
   format = "file"
  ),
 
- ## ERE ETL RDS ----
+ ### ERE ETL RDS ----
 
  targets::tar_target(
   ere_etl_rds,
@@ -2254,7 +2501,7 @@ tar_target(
   format = "file"
  ),
 
- ## YERE ETL RDS ----
+ ### YERE ETL RDS ----
 
  targets::tar_target(
   yere_etl_rds,
@@ -2271,7 +2518,7 @@ tar_target(
   format = "file"
  ),
  
- ## BHN-Wide ETL RDS ----
+ ### BHN-Wide ETL RDS ----
  
 targets::tar_target(
   bhn_wide_rds,
