@@ -595,7 +595,7 @@ transform_complex_care_pathclient <- function(
         "Complex Care Outreach Note" = "ccnotes_docserno"
       )
     )
-
+  
   # Extract enrollment-level columns, which describe the enrollment itself.
   # These columns do not vary by event type, so one distinct row per
   # (client_number, tiedenrollment) is retained.
@@ -1461,7 +1461,7 @@ transform_complex_care_referral_flow <- function(
   
   # Filter to valid enrollments
   pc_eto_valid <- pc_eto |> 
-    filter(
+    dplyr::filter(
       enrollment_starting_date <= added_cohort_date
     )
   
@@ -1533,6 +1533,7 @@ transform_complex_care_referral_flow <- function(
   pfp_legacy <- complex_care$complex_care_ext_pfp_metrics_legacy |>
     dplyr::select(
       mrn_mercy,
+      legacy_referred_cohort_date = referred_to_cohort_date,
       legacy_enrollment_date = enrollment_date
     )
   
@@ -1542,20 +1543,55 @@ transform_complex_care_referral_flow <- function(
   ###           legacy_enrollment_date columns as it will no longer be needed.
   ### ===
   
-  joined <- joined |>
+  #### a. Stage One join: match on cohort referral date ----
+  legacy_pfp_metrics_stage_one <- joined |>
     dplyr::left_join(
       pfp_legacy,
-      by = "mrn_mercy"
-    ) |>
+      by = c(
+        "mrn_mercy" = "mrn_mercy",
+        "roster_added_cohort_date" = "legacy_referred_cohort_date"
+      )
+    )
+
+  #### b. Identify unmatched legacy rows ----
+  pfp_unmatched <- pfp_legacy |> 
+    dplyr::anti_join(
+      legacy_pfp_metrics_stage_one |> 
+        dplyr::select(
+          mrn_mercy,
+          roster_added_cohort_date
+        ),
+      by = c(
+        "mrn_mercy" = "mrn_mercy",
+        "legacy_referred_cohort_date" = "roster_added_cohort_date"
+      )
+    )
+
+  #### c. Stage Two join: match on program enrollment date ----
+  legacy_pfp_metrics_stage_two <- joined |> 
+    dplyr::left_join(
+      pfp_unmatched,
+      by = c(
+        "mrn_mercy" = "mrn_mercy",
+        "enrollment_starting_date" = "legacy_referred_cohort_date"
+      )
+    )
+
+  #### d. Combine and dedupe ----
+  joined <- dplyr::bind_rows(
+    legacy_pfp_metrics_stage_one,
+    legacy_pfp_metrics_stage_two
+  ) |> 
     dplyr::mutate(
-      benchmarks_enrollment_date =
-        dplyr::if_else(
-          imported & is.na(
-            benchmarks_enrollment_date
-            ),
-          legacy_enrollment_date,
-          benchmarks_enrollment_date
-        )
+      benchmarks_enrollment_date = dplyr::coalesce(
+        benchmarks_enrollment_date,
+        legacy_enrollment_date
+      )
+    ) |> 
+    dplyr::distinct(
+      mrn_mercy,
+      enrollment_starting_date,
+      .keep_all = TRUE
     ) |>
     dplyr::select(
       -legacy_enrollment_date
