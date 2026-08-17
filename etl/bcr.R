@@ -130,121 +130,457 @@
 # ===
 # 0. Program-Specific Helper Functions ----
 # ===
-bcr_detect_rp_subtypes <- function(
-    rp
+
+# Detect RP TYPE‑LEVEL referral fields (e.g., bh_ref_placed, housing_ref_placed)
+# ===
+# This function identifies which *type-level* referral fields exist in the
+# raw referrals placed (RP) table. Type-level fields correspond to the
+# "big buckets" of referral types (behavioral_health, housing, etc.).
+#
+# The master_lookup table defines which RP fields *should* exist. We intersect
+# those with the actual RP columns to determine which type-level referral
+# fields are present for this enrollment.
+#
+# Output:
+#   placed_col  = the RP column name (e.g., "bh_ref_placed")
+#   type_clean  = normalized type name (e.g., "bh")
+bcr_detect_rp_types <- function(
+    rp,
+    master_lookup
     ) {
+  
+  rp <- rp |>
+    janitor::clean_names()
   rp_cols <- names(
     rp
     )
   
-  placed_cols <- rp_cols[grepl("_ref_placed$", rp_cols)]
+  # Raw RP fields look like: bh_ref_placed, housing_ref_placed, etc.
+  type_fields_raw <- master_lookup |>
+    filter(
+      master_table_name == "bcr_presenting_concerns",
+      status == "Active"
+      ) |>
+    pull(
+      rp_type_field_name
+      )
   
+  # Keep only those that exist in RP
+  type_cols <- intersect(
+    type_fields_raw,
+    rp_cols
+    )
   
+  tibble(
+    placed_col = type_cols,
+    type_clean = sub(
+      "_ref_placed$",
+      "",
+      type_cols
+      )
+  )
+}
+
+# Detect RP SUBTYPE‑LEVEL referral fields (e.g., counseling_ref_placed)
+# ===
+# RP contains many subtype-level referral fields (counseling, cmhc, furniture,
+# primary care, etc.). These fields are prefixed in the cleaned RP, so we
+# normalize column names by stripping "rp_" before detection.
+#
+# master_lookup defines the canonical list of subtype roots (rp_field_name).
+# We convert those into expected RP column names ("<subtype>_ref_placed") and
+# intersect with actual RP columns to determine which subtypes are present.
+#
+# Output:
+#   placed_col      = "<subtype>_ref_placed"
+#   subtype_clean   = "<subtype>"
+#   agency_col      = "<subtype>_agency"
+#   agency_desc_col = "<subtype>_agency_desc"
+#   date_col        = "date_<subtype>_ref_placed"
+#
+# These columns are used later to extract agency names and referral dates.
+bcr_detect_rp_subtypes <- function(
+    rp,
+    master_lookup
+    ) {
+  
+  # Normalize RP column names
+  rp <- rp |>
+    janitor::clean_names()
+  names(
+    rp
+    ) <- sub(
+      "^rp_",
+      "",
+      names(
+        rp
+        )
+      )
+  rp_cols <- names(
+    rp
+    )
+  
+  # Metadata subtype fields
+  subtype_fields <- master_lookup |>
+    dplyr::filter(
+      grepl(
+        "^bcr_ref_placed_",
+        master_table_name
+        ),
+      status == "Active"
+    ) |>
+    dplyr::pull(
+      rp_field_name
+      )
+  
+  # Expected RP columns
+  expected_cols <- paste0(
+    subtype_fields,
+    "_ref_placed"
+    )
+  
+  # Intersection with RP
+  placed_cols <- intersect(
+    expected_cols,
+    rp_cols
+    )
+  
+  subtype_clean <- sub(
+    "_ref_placed$",
+    "",
+    placed_cols
+    )
   
   tibble::tibble(
     placed_col = placed_cols,
-    subtype = gsub(
-      "_ref_placed$",
-      "",
-      placed_cols
+    subtype_clean = subtype_clean,
+    agency_col = paste0(
+      subtype_clean,
+      "_agency"
+      ),
+    agency_desc_col = paste0(
+      subtype_clean,
+      "_agency_desc"
+      ),
+    date_col = paste0(
+      "date_",
+      subtype_clean,
+      "_ref_placed"
       )
-  ) %>%
-    dplyr::mutate(
-      subtype_clean = sub(
-        "^rp_",
-        "",
-        subtype
-        ),
-      
-      agency_col = paste0(
-        "rp_",
-        subtype_clean,
-        "_agency"
-        ),
-      agency_desc_col = paste0(
-        "rp_",
-        subtype_clean,
-        "_agency_desc"
-        ),
-      
-      date_col = dplyr::case_when(
-        paste0(
-          "rp_date_",
-          subtype_clean,
-          "_ref_placed"
-          ) %in% rp_cols ~ paste0(
-            "rp_date_",
-            subtype_clean,
-            "_ref_placed"
-            ),
-        paste0(
-          "rp_date_",
-          subtype_clean,
-          "_ref"
-          ) %in% rp_cols ~ paste0(
-            "rp_date_",
-            subtype_clean,
-            "_ref"
-            ),
-        .default = NA_character_
-      )
-    )
+  )
 }
 
+# Build TYPE‑LEVEL referral metadata map
+# ===
+# master_lookup and bcr_referral_type_map define the canonical referral types
+# (Behavioral Health, Housing, Physical Health, etc.) and their RP field names.
+#
+# Steps:
+#   1. Filter metadata to active type definitions.
+#   2. Normalize referral_type into snake_case for consistency.
+#   3. Construct placed_col = rp_type_field_name (e.g., "bh_ref_placed").
+#   4. Detect which type-level fields actually exist in RP.
+#   5. Join detected fields with metadata.
+#
+# Output includes:
+#   placed_col      = RP column name
+#   type_clean      = normalized type name
+#   referral_type   = canonical snake_case type name
+#   code, description, status
+#
+# This map drives the TYPE portion of rp_long.
+bcr_build_rp_type_map <- function(
+    bcr_referral_type_map,
+    rp,
+    master_lookup
+) {
+  
+  bcr_referral_type_map <- bcr_referral_type_map |>
+    filter(
+      !is.na(
+        rp_type_field_name
+        ),
+      rp_type_field_name != ""
+      )
+  
+  type_map_norm <- bcr_referral_type_map |>
+    mutate(
+      type_clean = janitor::make_clean_names(
+        referral_type
+        ),
+      placed_col = paste0(
+        rp_type_field_name
+        )  # raw RP column name
+    )
+  
+  detected <- bcr_detect_rp_types(
+    rp,
+    master_lookup
+    )
+  
+  detected |>
+    left_join(
+      type_map_norm,
+      by = "placed_col"
+      )
+}
+
+# Build SUBTYPE‑LEVEL referral metadata map
+# ===
+# Subtypes (counseling, cmhc, furniture, etc.) are defined in
+# bcr_referral_subtype_map. RP contains corresponding fields, but they may be
+# prefixed ("rp_") depending on how RP was cleaned. We normalize RP column
+# names by stripping "rp_" before matching.
+#
+# Steps:
+#   1. Normalize RP column names.
+#   2. Identify subtype roots present in RP.
+#   3. Filter metadata to only subtypes that actually exist in RP.
+#   4. Build placed_col, agency_desc_col, date_col for each subtype.
+#   5. Normalize referral_type to snake_case to match type_map.
+#   6. Detect actual subtype fields in RP.
+#   7. Join detected fields with metadata.
+#
+# Output includes:
+#   placed_col      = "<subtype>_ref_placed"
+#   subtype_clean   = "<subtype>"
+#   agency_desc_col = "<subtype>_agency_desc"
+#   date_col        = "date_<subtype>_ref_placed"
+#   referral_type   = snake_case type name
+#
+# This map drives the SUBTYPE portion of rp_long.
 bcr_build_rp_subtype_map <- function(
     bcr_referral_subtype_map,
-    rp
+    rp,
+    master_lookup
 ) {
-  bcr_detect_rp_subtypes(
+  
+  # Normalize RP column names
+  rp <- rp |>
+    janitor::clean_names()
+  names(
     rp
-  ) %>%
-    dplyr::left_join(
-      bcr_referral_subtype_map,
-      by = c(
-        "subtype_clean" = "subtype"
+    ) <- sub(
+      "^rp_",
+      "",
+      names(
+        rp
+        )
       )
+  
+  # Identify RP subtype roots
+  rp_subtypes <- names(
+    rp
+    )[grepl("_ref_placed$", names(rp))] |>
+    sub(
+      "_ref_placed$",
+      "",
+      x = _
+      )
+  
+  # Filter metadata to only RP subtypes that exist
+  bcr_referral_subtype_map <- bcr_referral_subtype_map |>
+    dplyr::filter(
+      !is.na(
+        rp_field_name
+        ),
+      rp_field_name != "",
+      rp_field_name %in% rp_subtypes
     )
+  
+  # Build normalized metadata
+  subtype_map_norm <- bcr_referral_subtype_map |>
+    dplyr::mutate(
+      placed_col = paste0(
+        rp_field_name,
+        "_ref_placed"
+        ),
+      agency_desc_col = paste0(
+        rp_field_name,
+        "_agency_desc"
+        ),
+      date_col = paste0(
+        "date_",
+        rp_field_name,
+        "_ref_placed"
+        )
+    )
+  
+  subtype_map_norm <- subtype_map_norm |>
+    mutate(
+      referral_type = snakecase::to_snake_case(
+        referral_type
+        )
+      )
+  
+  # Detect actual RP subtype columns
+  detected <- bcr_detect_rp_subtypes(
+    rp,
+    master_lookup
+    )
+  
+  # Join detected RP columns with metadata
+  detected |>
+    dplyr::left_join(
+      subtype_map_norm,
+      by = "placed_col"
+      )
 }
 
-# Pivot Referrals Placed to long tibble
+# Pivot RP TYPE + SUBTYPE referrals into long-form table
+# ===
+# rp_long is the unified long-form representation of all referrals placed.
+# It merges:
+#   - TYPE‑LEVEL referrals (behavioral_health, housing, etc.)
+#   - SUBTYPE‑LEVEL referrals (counseling, cmhc, furniture, etc.)
+#
+# TYPE‑LEVEL:
+#   - referral_subtype = NA
+#   - agency_name and referral_date only exist for "other"
+#   - referral_type comes from type_map (snake_case)
+#
+# SUBTYPE‑LEVEL:
+#   - referral_subtype = "<subtype>"
+#   - agency_name and referral_date extracted from RP using subtype_map
+#   - referral_type normalized to snake_case
+#
+# Defensive extraction:
+#   - agency_name and referral_date are only populated if the expected
+#     columns exist in RP; otherwise NA is used.
+#
+# Output columns:
+#   client_number, tiedenrollment
+#   referral_type, referral_subtype
+#   referral_code, referral_desc, referral_status
+#   referral_placed
+#   agency_name, referral_date
+#   unmet_needs, unmet_needs_exp
+#
+# This table is the authoritative long-form representation of all referrals.
 bcr_pivot_rp_long <- function(
     rp,
+    type_map,
     subtype_map
 ) {
-  purrr::map_dfr(
+  # --- TYPE-LEVEL ---
+  type_map_filtered <- type_map |>
+    dplyr::filter(
+      !is.na(
+        referral_type
+        )
+      )
+  
+  rp_long_types <- purrr::map_dfr(
     seq_len(
       nrow(
-        subtype_map
-      )
-    ),
+        type_map_filtered
+        )
+      ),
     function(
     i
     ) {
-      # Convert the one-row tibble to list then scalar strings then list
-      # (convoluted, I know, but necessary)
+      m <- type_map_filtered[i, ]
+      key <- m$placed_col
+      
+      if (
+        key == "other_ref_placed"
+        ) {
+        rp |>
+          dplyr::mutate(
+            referral_type = m$referral_type,
+            referral_subtype = NA_character_,
+            referral_code = NA_character_,
+            referral_desc = NA_character_,
+            referral_status = NA_character_,
+            referral_placed = rp[[key]],
+            agency_name = rp[["other_agency"]],
+            referral_date = rp[["date_other_ref"]]
+          ) |>
+          dplyr::filter(
+            referral_placed == 1
+            )
+      } else {
+        rp |>
+          dplyr::mutate(
+            referral_type = m$referral_type,
+            referral_subtype = NA_character_,
+            referral_code = m$code,
+            referral_desc = m$description,
+            referral_status = NA_character_,
+            referral_placed = rp[[key]],
+            agency_name = rp[[paste0(key, "_agency_desc")]],
+            referral_date = rp[[paste0("date_", key, "_ref_placed")]]
+          ) |>
+          dplyr::filter(
+            referral_placed == 1
+            )
+      }
+    }
+  )
+  
+  # --- SUBTYPE-LEVEL ---
+  rp_long_subtypes <- purrr::map_dfr(
+    seq_len(
+      nrow(
+        subtype_map
+        )
+      ),
+    function(
+    i
+    ) {
       m <- subtype_map[i, ] |>
-        as.list() |>
-        purrr::map_chr(
-          ~ vctrs::vec_cast(
-            .x,
-            character())[1]
-        ) |>
         as.list()
       
-      rp |> 
+      # Defensive extraction
+      agency_col <- m$agency_desc_col
+      date_col <- m$date_col
+      
+      agency_name <- if (
+        !is.null(
+          agency_col
+          ) && length(
+            agency_col
+            ) == 1 && !is.na(
+              agency_col
+              ) && agency_col %in% names(
+                rp
+                )
+        ) {
+        rp[[agency_col]]
+      } else {
+        NA_character_
+      }
+      
+      referral_date <- if (
+        !is.null(
+          date_col
+          ) && length(
+            date_col
+            ) == 1 && !is.na(
+              date_col
+              ) && date_col %in% names(
+                rp
+                )
+        ) {
+        rp[[date_col]]
+      } else {
+        NA
+      }
+      
+      rp |>
         dplyr::mutate(
           referral_type = m$referral_type,
-          referral_subtype = m$subtype,
+          referral_subtype = m$subtype_clean,
           referral_code = m$code,
           referral_desc = m$description,
           referral_status = m$status,
           referral_placed = rp[[m$placed_col]],
-          agency_name = rp[[m$agency_desc_col]],
-          referral_date = if (!is.na(m$date_col)) rp[[m$date_col]] else NA
-        ) |>  
+          agency_name = agency_name,
+          referral_date = referral_date
+        ) |>
         dplyr::filter(
           referral_placed == 1
-          ) |> 
+          ) |>
         dplyr::select(
           client_number,
           tiedenrollment,
@@ -256,27 +592,98 @@ bcr_pivot_rp_long <- function(
           referral_placed,
           agency_name,
           referral_date,
-          rp_unmet_needs,
-          rp_unmet_needs_exp
+          unmet_needs,
+          unmet_needs_exp
         )
     }
   )
+  
+  dplyr::bind_rows(
+    rp_long_types,
+    rp_long_subtypes
+    )
 }
 
-# subtype_map <- bcr_build_rp_subtype_map(
-#   bcr_referral_subtype_map,
-#   rp
-# ) |> 
-#   dplyr::filter(
-#     agency_desc_col %in% names(
-#       rp
-#     )
-#   )
+# Clean and prefix RP columns for joining into referral_flow
+# ===
+# RP is used in two forms:
+#   1. rp_detect  = unprefixed (for detection + rp_long)
+#   2. rp         = prefixed   (for joining into referral_flow)
+#
+# This function produces the prefixed version (rp):
+#   - Prefixes *_ref_placed, *_agency, *_agency_desc, date_* fields with "rp_"
+#   - Prefixes core fields (id, docserno, visit_date, etc.)
+#   - Leaves join keys (client_number, tiedenrollment) unprefixed
+#
+# This ensures RP joins cleanly into referral_flow without name collisions.
+bcr_clean_rp <- function(
+    rp_raw
+    ) {
+  rp <- rp_raw |>
+    janitor::clean_names()
+  rp_cols <- names(
+    rp
+    )
+  
+  cols_to_prefix <- rp_cols[
+    grepl(
+      "_ref_placed$",
+      rp_cols
+      ) |
+      grepl(
+        "_agency$",
+        rp_cols
+        ) |
+      grepl(
+        "_agency_desc$",
+        rp_cols
+        ) |
+      grepl(
+        "^date_.*_ref_placed$",
+        rp_cols
+        ) |
+      grepl(
+        "^date_.*_ref$",
+        rp_cols
+        )
+  ]
+  
+  new_names <- paste0(
+    "rp_",
+    cols_to_prefix
+    )
+  names(
+    rp
+    )[match(cols_to_prefix, names(rp))] <- new_names
+  
+  core_fields <- c(
+    "id",
+    "docserno",
+    "visit_date",
+    "visit_time",
+    "userid",
+    "event_name",
+    # NOTE: no tiedenrollment, no client_number, no client_name
+    "pathway_date",
+    "bcr_type_ref_placed"
+  )
+  
+  core_fields <- intersect(
+    core_fields,
+    names(
+      rp
+      )
+    )
+  names(
+    rp
+    )[match(core_fields, names(rp))] <- paste0(
+      "rp_",
+      core_fields
+      )
+  
+  rp
+}
 
-# rp_long <- bcr_pivot_rp_long(
-#   rp,
-#   subtype_map
-# )
 # ===
 # 1. List file paths for all data source files. ----
 #   - Uses function make_path() from helpers.R.
@@ -774,165 +1181,177 @@ transform_bcr_pathclient <- function(
 ##   - Collapses SCD summation tables to one active row per enrollment
 ## ===
 transform_bcr_referral_flow <- function(
-  bcr,
-  bcr_referral_subtype_map
+    bcr,
+    bcr_referral_type_map,
+    bcr_referral_subtype_map,
+    master_lookup
 ) {
-
+  
   # Helper to prefix all columns except tiedenrollment and client_number and
-  # also to drop metadata
+  # drop metadata fields (notes, *_code with matching *_description) 
   clean_form <- function(
     df,
     prefix
-  ) {
-
-    # Identify *_code columns
-    code_cols <- names(df)[endsWith(names(df), "_code")]
-
-    # Identify *_description columns
-    desc_cols <- names(df)[endsWith(names(df), "_description")]
-
-    # Determine which *_code columns have matching *_description columns
+    ) {
+    
+    code_cols <- names(
+      df
+      )[
+        endsWith(
+          names(
+            df
+            ),
+          "_code"
+          )
+        ]
+    desc_cols <- names(
+      df
+      )[
+        endsWith(
+          names(
+            df
+            ),
+          "_description"
+          )
+        ]
+    
+    # Drop *_code fields when a *_description counterpart exists
     code_with_desc <- code_cols[
       sub(
         "_code$",
         "_description",
         code_cols
-      ) %in% desc_cols
+        ) %in% desc_cols
     ]
-
+    
     df |>
-      # Drop narrative fields
       dplyr::select(
         -tidyselect::contains(
           "notes"
-        ),
+          ),
       ) |>
-      # Drop only *_code columns that have matching *_description columns
       dplyr::select(
         -tidyselect::all_of(
           code_with_desc
-        )
+          )
       ) |>
-      # Prefix all remaining columns except join keys
       dplyr::rename_with(
         ~ paste0(
           prefix,
           .x
-        ),
+          ),
         -tidyselect::any_of(
           c(
             "tiedenrollment",
             "client_number"
+            )
           )
-        )
       )
   }
-
-  # Clean each active SCD summation tables
+  
+  # --- SCD tables ---
+  # Clean and prefix SCD tables; remove join keys so they can be collapsed
   payor <- clean_form(
     bcr$bcr_active_payor_source,
     "payor_"
-  ) |>
+    ) |>
     dplyr::rename(
       parent_docserno = payor_parent_docserno
-    ) |>
+      ) |>
     dplyr::select(
       -client_number,
       -tiedenrollment
-    )
+      )
   
   housing <- clean_form(
     bcr$bcr_active_housing,
     "housing_"
-  ) |>
+    ) |>
     dplyr::rename(
       parent_docserno = housing_parent_docserno
-    ) |>
+      ) |>
     dplyr::select(
       -client_number
-    )
+      )
   
   presconcerns <- clean_form(
     bcr$bcr_presenting_concerns,
     "pc_"
-  ) |>
+    ) |>
     dplyr::rename(
       parent_docserno = pc_parent_docserno
-    ) |>
+      ) |>
     dplyr::select(
       -client_number
-    )
-
-  # Drop docserno from parent event forms to avoid suffix collisions (.x/.y) due
-  # to duplication when joining with pathclient. Pathclient is the authoritative
-  # source of docserno values.
+      )
+  
+  # --- Event forms ---
+  # REF and IC are cleaned and prefixed; drop docserno and client name fields
   ref <- clean_form(
     bcr$bcr_ref,
     "ref_"
-  ) |>
+    ) |>
     dplyr::select(
       -tidyselect::ends_with(
         "docserno"
-      ),
+        ),
       -ref_client_last,
       -ref_client_first
     )
-
+  
   ic <- clean_form(
     bcr$bcr_ic,
     "ic_"
-  ) |>
+    ) |>
     dplyr::select(
       -tidyselect::ends_with(
         "docserno"
-      ),
+        ),
       -ic_client_last,
       -ic_client_first
     )
-
-  rp <- clean_form(
-    bcr$bcr_referrals_placed,
-    "rp_"
-  ) |>
+  
+  # --- Referrals Placed (RP) ---
+  rp_raw <- bcr$bcr_referrals_placed
+  
+  # rp_detect = unprefixed RP used for detection + type/subtype map building
+  rp_detect <- rp_raw |>
+    janitor::clean_names()
+  
+  # rp = prefixed RP used for joining into referral_flow
+  rp <- bcr_clean_rp(
+    rp_raw
+    ) |>
     dplyr::select(
       -tidyselect::ends_with(
         "docserno"
-      ),
-      -rp_client_name
+        )
     )
-
-  # events <- clean_form(
-  #   bcr$bcr_events,
-  #   "events_"
-  # )  |>
-  #   dplyr::select(
-  #     -tidyselect::ends_with(
-  #       "docserno"
-  #     )
-  #   )
-
+  
+  # --- CCS (long-form, NOT joined) ---
+  # CCS is kept separate; pivoted wide only for reporting convenience
   ccs <- clean_form(
     bcr$bcr_client_counseling_sessions,
     "ccs_"
-  ) |>
+    ) |>
     dplyr::select(
       -tidyselect::ends_with(
         "docserno"
-      )
-    ) |>
+        )
+      ) |>
     arrange(
       client_number,
       ccs_session_date
-    ) |>
+      ) |>
     group_by(
       client_number,
       tiedenrollment
-    ) |>
+      ) |>
     mutate(
       ccs_session_n = row_number()
-    ) |>
+      ) |>
     ungroup() |>
-    pivot_wider(
+    tidyr::pivot_wider(
       id_cols = c(
         client_number,
         tiedenrollment
@@ -944,21 +1363,19 @@ transform_bcr_referral_flow <- function(
     mutate(
       ccs_total_sessions = rowSums(
         !is.na(
-          across(
+          dplyr::across(
             starts_with(
               "ccs_session_"
-            )
+              )
           )
         )
       )
     )
-
-  # Start with pivoted pathclient
+  
+  # --- Parent map ---
+  # Maps each event form (REF, IC, RP) to its parent_docserno for SCD collapsing
   pc <- bcr$pathclient
-
-  # Invariant: parent_map must contain exactly one row per (client_number,
-  # tiedenrollment, parent_docserno). If this is violated, SCD collapse will
-  # fail. The result is a long form tibble
+  
   parent_map <- pc |>
     dplyr::select(
       client_number,
@@ -970,145 +1387,163 @@ transform_bcr_referral_flow <- function(
     tidyr::pivot_longer(
       cols = tidyselect::ends_with(
         "docserno"
-      ),
+        ),
       names_to = "event",
       values_to = "parent_docserno"
     ) |>
     dplyr::filter(
       !is.na(
         parent_docserno
+        )
       )
-    )
-
-  # Helper: collapse SCD table to one row per enrollment
+  
+  # Collapse SCD tables to one active row per enrollment
   collapse_scd <- function(
     scd_tbl
-  ) {
+    ) {
     parent_map |>
       dplyr::left_join(
         scd_tbl,
-        by = "parent_docserno"
-      ) |>
+        by = "parent_docserno") |>
       dplyr::arrange(
         client_number,
         tiedenrollment
-      ) |>
+        ) |>
       dplyr::group_by(
         client_number,
         tiedenrollment
-      ) |>
+        ) |>
       dplyr::summarise(
         dplyr::across(
           .cols = -c(
             parent_docserno,
             event
-          ),
+            ),
           .fns  = ~ first(
             na.omit(
               .x
+              )
             )
-          )
         ),
         .groups = "drop"
       )
   }
-
-  # Diagnostic: payor_one shows which active payor source SCD row was selected
-  # for each enrollment. Useful for debugging missing or stale SCD values.
-  payor_one   <- collapse_scd(
+  
+  payor_one <- collapse_scd(
     payor
-  )
-
-  # Diagnostic: housing_one shows which active housing status SCD row was
-  # selected for each enrollment. Useful for debugging missing or stale SCD
-  # values.
+    )
   housing_one <- collapse_scd(
     housing
-  )
-
-  # Diagnostic: intake_one shows which active intake SCD row was selected for
-  # each enrollment. Useful for debugging missing or stale SCD values.
-  presconcerns_one  <- collapse_scd(
+    )
+  presconcerns_one <- collapse_scd(
     presconcerns
-  )
-
-  # Start join sequence with joined "authoritative" pathclient
+    )
+  
+  # --- Join everything into wide referral_flow ---
   joined <- pc |>
-    # Join SCD "active" summaries once per enrollment
     dplyr::left_join(
       payor_one,
       by = c(
         "client_number",
         "tiedenrollment"
-      )
-    ) |>
+        )
+      ) |>
     dplyr::left_join(
       housing_one,
       by = c(
         "client_number",
         "tiedenrollment"
-      )
-    ) |>
-    
-    # Join SCD "presenting concerns" once per enrollment
+        )
+      ) |>
     dplyr::left_join(
       presconcerns_one,
       by = c(
         "client_number",
         "tiedenrollment"
-      )
-    ) |> 
-    
-    # Join event forms by enrollment
+        )
+      ) |>
     dplyr::left_join(
       ref,
-      by = join_by(
+      by = c(
         "client_number",
         "tiedenrollment"
-      )
-    ) |>
+        )
+      ) |>
     dplyr::left_join(
       ic,
-      by = join_by(
+      by = c(
         "client_number",
         "tiedenrollment"
-      )
-    ) |>
+        )
+      ) |>
     dplyr::left_join(
       rp,
-      by = join_by(
+      by = c(
         "client_number",
         "tiedenrollment"
+        )
       )
-    ) |> 
-    dplyr::left_join(
-      ccs,
-      by = join_by(
-        "client_number",
-        "tiedenrollment"
-      )
-    )
-
+  
+    # CCS intentionally NOT joined; remains long-form
+    
+    # dplyr::left_join(
+    #   ccs,
+    #   by = c(
+    #     "client_number",
+    #     "tiedenrollment"
+    #     )
+    #   )
+  
+  # --- TYPE & SUBTYPE maps ---
+  
+  # Build TYPE map using unprefixed RP (rp_detect)
+  #   - Ensures placed_col matches raw RP column names
+  #   - referral_type normalized to snake_case
+  type_map <- bcr_build_rp_type_map(
+    bcr_referral_type_map,
+    rp_detect,
+    master_lookup
+  )
+  
+  # Build SUBTYPE map using unprefixed RP (rp_detect)
+  #   - Ensures subtype roots match raw RP column names
+  #   - referral_type normalized to snake_case
   subtype_map <- bcr_build_rp_subtype_map(
     bcr_referral_subtype_map,
-    rp
-  ) |>
-    dplyr::filter(
-      agency_desc_col %in% names(
-        rp
+    rp_detect,
+    master_lookup
+  )
+  
+  # Filter out subtype rows whose agency_desc_col does not exist in RP
+  # (protects pivot from invalid column references)
+  if (
+    "agency_desc_col" %in% names(
+      subtype_map
       )
-    )
+    ) {
+    subtype_map <- subtype_map |>
+      dplyr::filter(
+        agency_desc_col %in% names(
+          rp_detect
+          )
+        )
+  }
   
+  # --- Pivot RP long using prefixed RP + maps ---
+  # rp_long merges TYPE-level and SUBTYPE-level referrals into a unified
+  # long-form table. TYPE rows have referral_subtype = NA; SUBTYPE rows
+  # populate referral_subtype, agency_name, and referral_date.
   rp_long <- bcr_pivot_rp_long(
-    rp,
+    rp_detect,
+    type_map,
     subtype_map
-    )
+  )
   
-  # Store the final joined referral flow table
+  # --- Output bundle ---
   output <- list(
     scd = list(
       presconcerns_one  = presconcerns_one,
-      payor_one   = payor_one,
+      payor_one = payor_one,
       housing_one = housing_one
     ),
     parent_map = parent_map,
@@ -1116,17 +1551,15 @@ transform_bcr_referral_flow <- function(
       ref = ref,
       ic = ic,
       rp = rp,
+      type_map = type_map,
+      subtype_map = subtype_map,
       rp_long = rp_long,
       ccs = ccs
     ),
     joined_referral_flow = joined
   )
-
-  # Return the joined_referral_flow and scd
-  return(
-    output
-  )
-
+  
+  output
 }
 
 # ===
@@ -1167,34 +1600,22 @@ run_bcr_etl <- function(
     bcr_all_payor_source,
     bcr_active_housing,
     bcr_all_housing,
+    bcr_referral_type_map,
     bcr_referral_subtype_map,
+    master_lookup,
     start_date = NULL,
-    end_date = NULL,
+    end_date   = NULL,
     fiscal_system = c(
       "federal",
       "state"
       )
 ) {
-
+  
   fiscal_system <- match.arg(
     fiscal_system
-  )
-
-  # analytic_fields is passed in by {targets} or default-loaded
-  # No internal call to analytic_fields <- load_analytic_fields() is needed
+    )
   
-  # print(
-  #   "Columns from analytic_fields + field_name placeholder"
-  # )
-  # print(
-  #   names(
-  #     analytic_fields
-  #   )
-  # )
-
-# ===
-  # 1. Raw Ingestion
-# ===
+  # 1. Raw bundle
   bcr_raw <- list(
     bcr_client = bcr_client,
     bcr_provider_placement = bcr_provider_placement,
@@ -1212,32 +1633,33 @@ run_bcr_etl <- function(
     bcr_all_housing = bcr_all_housing
   )
   
-# ===
-  # 2. Transformations
-# ===
+  # 2. Pathclient transform
   pathclient <- transform_bcr_pathclient(
     bcr_raw
-  )
-  # Promote pivoted pathclient to authoritative
+    )
   bcr_raw$pathclient <- pathclient$joined_pathclient
-
+  
+  # 3. Referral flow transform
   referral_flow <- transform_bcr_referral_flow(
     bcr_raw,
-    bcr_referral_subtype_map
+    bcr_referral_type_map,
+    bcr_referral_subtype_map,
+    master_lookup
   )
-
+  
+  # 4. Full data extract
   full <- extract_bcr_full_data(
     referral_flow
-  )
-
-  # Subsets are optional; only build if dates are supplied
+    )
+  
+  # 5. Optional subsets
   subsets <- NULL
   if (
     !is.null(
       start_date
       ) && !is.null(
         end_date
-      )
+        )
     ) {
     subsets <- build_subsets(
       full_data = full,
@@ -1246,13 +1668,11 @@ run_bcr_etl <- function(
       fiscal_system = fiscal_system
     )
   }
-
-# ===
-  # 3. Return structured object
-# ===
+  
+  # 6. Return ETL object
   list(
     raw = bcr_raw,
-    transform  = list(
+    transform = list(
       pathclient = pathclient,
       referral_flow = referral_flow
     ),
@@ -1260,4 +1680,3 @@ run_bcr_etl <- function(
     subsets = subsets
   )
 }
-

@@ -1923,8 +1923,10 @@ targets::tar_target(
     bcr_referral_flow_core,
     transform_bcr_referral_flow(
       bcr_etl$raw,
-      bcr_referral_subtype_map # passes the subtype_map dependency
-    )
+      bcr_referral_type_map, # passes the type_map dependency
+      bcr_referral_subtype_map, # passes the subtype_map dependency
+      master_lookup
+      )
   ),
 
   ### Complex Care ----
@@ -2027,7 +2029,9 @@ targets::tar_target(
      bcr_all_payor_source = bcr_all_payor_source_raw,
      bcr_active_housing = bcr_active_housing_raw,
      bcr_all_housing = bcr_all_housing_raw,
-     bcr_referral_subtype_map = bcr_referral_subtype_map
+     bcr_referral_type_map = bcr_referral_type_map,
+     bcr_referral_subtype_map = bcr_referral_subtype_map,
+     master_lookup = master_lookup
    )
  ),
 
@@ -2392,45 +2396,140 @@ targets::tar_target(
 ),
 
 #### BCR Master Table LUTs RDS ----
-  
-tar_target(
+
+# BCR Type and Subtype Detection targets
+targets::tar_target(
+  bcr_detect_rp_types_target,
+  bcr_detect_rp_types(
+    rp = bcr_referrals_placed_raw,
+    master_lookup = master_lookup
+  ),
+  format = "rds"
+),
+
+targets::tar_target(
+  bcr_detect_rp_subtypes_target,
+  bcr_detect_rp_subtypes(
+    rp = bcr_referrals_placed_raw,
+    master_lookup = master_lookup
+  ),
+  format = "rds"
+),
+
+# BCR RP Type and Subtype Mapping targets
+targets::tar_target(
+  bcr_referral_type_map,
+  master_lookup |>
+    dplyr::filter(
+      master_table_name == "bcr_presenting_concerns"
+      ) |>
+    dplyr::select(
+      code,
+      description,
+      status,
+      rp_type_field_name,
+      referral_type
+    ),
+  format = "rds"
+),
+
+targets::tar_target(
   bcr_referral_subtype_map,
   {
-    bcr_referral_type_map <- tibble::tibble(
-      master_table_name = c(
-        "bcr_ref_placed_bh_subtype",
-        "bcr_ref_placed_housing_subtype",
-        "bcr_ref_placed_phys_health_sub",
-        "bcr_ref_placed_social_subtype"
-      ),
-      referral_type = c(
-        "behavioral_health",
-        "housing",
-        "physical_health",
-        "social_services"
-      )
-    )
-    
-    master_lookup %>%
+    subtype_tables <- master_lookup |>
+      dplyr::distinct(
+        master_table_name
+        ) |>
       dplyr::filter(
-        master_table_name %in% bcr_referral_type_map$master_table_name
-        ) %>%
-      dplyr::left_join(
-        bcr_referral_type_map,
-        by = "master_table_name"
-        ) %>%
+        grepl(
+          "^bcr_ref_placed_",
+          master_table_name
+          ) &
+          grepl(
+            "sub(type)?$",
+            master_table_name
+            )
+      ) |>
+      dplyr::pull(
+        master_table_name
+        )
+
+    master_lookup |>
+      dplyr::filter(
+        master_table_name %in% subtype_tables
+        ) |>
       dplyr::select(
         master_table_name,
-        referral_type,
+        referral_type = type,
         code,
         description,
         status,
-        subtype
+        rp_field_name
       )
   },
   format = "rds"
 ),
 
+# BCR RP Type and Subtype Builder Targets
+targets::tar_target(
+  bcr_type_map_built,
+  bcr_build_rp_type_map(
+    bcr_referral_type_map = bcr_referral_type_map,
+    rp = bcr_referrals_placed_raw,
+    master_lookup = master_lookup
+  ),
+  format = "rds"
+),
+
+targets::tar_target(
+  bcr_subtype_map_built,
+  bcr_build_rp_subtype_map(
+    bcr_referral_subtype_map = bcr_referral_subtype_map,
+    rp = bcr_referrals_placed_raw,
+    master_lookup = master_lookup
+  ),
+  format = "rds"
+),
+
+
+# targets::tar_target(
+#   bcr_referral_subtype_map,
+#   {
+#     bcr_referral_type_map <- tibble::tibble(
+#       master_table_name = c(
+#         "bcr_ref_placed_bh_subtype",
+#         "bcr_ref_placed_housing_subtype",
+#         "bcr_ref_placed_phys_health_sub",
+#         "bcr_ref_placed_social_subtype"
+#       ),
+#       referral_type = c(
+#         "behavioral_health",
+#         "housing",
+#         "physical_health",
+#         "social_services"
+#       )
+#     )
+# 
+#     master_lookup |>
+#       dplyr::filter(
+#         master_table_name %in% bcr_referral_type_map$master_table_name
+#         ) %>%
+#       dplyr::left_join(
+#         bcr_referral_type_map,
+#         by = "master_table_name"
+#         ) %>%
+#       dplyr::select(
+#         master_table_name,
+#         referral_type,
+#         code,
+#         description,
+#         status,
+#         subtype
+#       )
+#   },
+#   format = "rds"
+# ),
+# 
  ### BCR ETL RDS ----
 
  targets::tar_target(
@@ -2439,7 +2538,7 @@ tar_target(
    "data_intermediate/etl/bcr",
    recursive = TRUE,
    showWarnings = FALSE
-  ) 
+  )
    saveRDS(
     bcr_etl,
     "data_intermediate/etl/bcr/bcr_etl.rds"
