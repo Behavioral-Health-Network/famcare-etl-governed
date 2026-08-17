@@ -39,7 +39,7 @@ load_master_tables <- function(
 bind_master_tables <- function(
   master_tables
   ) {
- purrr::list_rbind(
+  dplyr::bind_rows(
   master_tables
   )
 }
