@@ -660,7 +660,16 @@ targets::tar_target(
   },
   format = "file"
  ),
- 
+
+  targets::tar_target(
+    epicc_pathclient_legacy_file,
+    {
+      vpn_check
+      epicc_paths$epicc_pathclient_legacy
+    },
+    format = "file"
+  ),
+
  targets::tar_target(
   epicc_pathway_docsernos_file,
   {
@@ -1421,6 +1430,14 @@ targets::tar_target(
    analytic_fields = analytic_fields
   )
  ),
+
+  targets::tar_target(
+    epicc_pathclient_legacy_raw,
+    load_famcare_extract(
+      path = epicc_pathclient_legacy_file,
+      analytic_fields = analytic_fields
+    )
+  ),
  
  targets::tar_target(
   epicc_pathway_docsernos_raw,
@@ -2076,7 +2093,11 @@ targets::tar_target(
   run_epicc_etl(
    analytic_fields = analytic_fields,
    epicc_provider_placement = epicc_provider_placement_raw,
-   epicc_pathclient = epicc_pathclient_raw,
+   epicc_pathclient = dplyr::bind_rows(
+     epicc_pathclient_raw,
+     epicc_pathclient_legacy_raw
+   ),
+   epicc_pathclient_legacy_raw = epicc_pathclient_legacy_raw,
    epicc_pathway_docsernos = epicc_pathway_docsernos_raw,
    epicc_client = epicc_client_raw,
    epicc_ref = epicc_ref_raw,

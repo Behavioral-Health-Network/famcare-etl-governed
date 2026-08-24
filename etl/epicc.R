@@ -142,6 +142,10 @@ epicc_paths <- list(
     "FAMCare EPICC Extract/",
     "Q_EPICC_PATHCLIENT_ENROLLMENTS_2023_CURRENT.csv"
   ),
+  epicc_pathclient_legacy = make_path(
+    "FAMCare EPICC Extract/",
+    "Q_EPICC_PATHCLIENT_ENROLLMENTS_2016_2022.csv"
+  ),
   epicc_pathway_docsernos = make_path(
     "FAMCare EPICC Extract/",
     "Q_EPICC_PATHWAY_FORM_DOCSERNOS.csv"
@@ -248,8 +252,6 @@ load_epicc_provider_placement <- function(
 
 # ===
 # Ingest epicc_pathclient ----
-#   - Renames key fields
-#   - Filters out rows with missing tiedenrollment
 #   - Pivoting handled separately, so this is not one row per enrollment yet
 # ===
 load_epicc_pathclient <- function(
@@ -536,18 +538,11 @@ load_epicc_support_services_tracker <- function(
 transform_epicc_pathclient <- function(
   epicc
 ) {
-  # Load raw pathclient extract, which is duplicated by Pathway Event form rows
-  df <- epicc$epicc_pathclient |>
-    filter(
-      !is.na(
-        tiedenrollment
-      )
-    )
-
+  # Load raw pathclient extract, which is duplicated by Pathway Event form rows.
   # Normalize event names from human readable event labels into canonical
   # column names that will become the *_docserno key. If new event types are
   # ever added for the program, they must be added here.
-  df <- df |>
+  df <- epicc$epicc_pathclient |>
     dplyr::mutate(
       event_key = dplyr::recode(
         pwy_event,
@@ -591,10 +586,20 @@ transform_epicc_pathclient <- function(
         enrollment_cols
       )
     ) |>
-    dplyr::distinct(
+    dplyr::group_by(
       client_number,
-      tiedenrollment,
-      .keep_all = TRUE
+      enrollment_starting_date
+    ) |>
+    dplyr::summarise(
+      dplyr::across(
+        dplyr::everything(),
+        ~ dplyr::first(
+          na.omit(
+            .x
+            )
+          )
+      ),
+      .groups = "drop"
     )
 
   # Merge client demographics
@@ -643,7 +648,7 @@ transform_epicc_pathclient <- function(
     tidyr::pivot_wider(
       names_from = event_key,
       values_from = pwy_forms_docserno,
-      values_fn = ~ first(
+      values_fn = ~ dplyr::first(
         na.omit(
         .x
         )
@@ -666,8 +671,6 @@ transform_epicc_pathclient <- function(
   wide <- wide |>
     dplyr::relocate(
       client_number,
-      client_last,
-      client_first,
       client_last,
       client_first,
       dob,
@@ -1110,6 +1113,7 @@ run_epicc_etl <- function(
   analytic_fields,
   epicc_provider_placement,
   epicc_pathclient,
+  epicc_pathclient_legacy_raw,
   epicc_pathway_docsernos,
   epicc_client,
   epicc_ref,
@@ -1155,82 +1159,26 @@ run_epicc_etl <- function(
   # 1. Raw Ingestion
 # ===
   epicc_raw <- list(
-    epicc_client = load_epicc_client(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_provider_placement = load_epicc_provider_placement(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_pathclient = load_epicc_pathclient(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_pathway_docsernos = load_epicc_pathway_docsernos(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_ref = load_epicc_ref(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_ic = load_epicc_ic(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_two_week = load_epicc_two_week(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_thirty_day = load_epicc_thirty_day(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_three_month = load_epicc_three_month(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_six_month = load_epicc_six_month(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_reengagement = load_epicc_reengagement(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_active_intake = load_epicc_active_intake(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_all_intake = load_epicc_all_intake(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_active_payor_source = load_epicc_active_payor_source(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_all_payor_source = load_epicc_all_payor_source(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_active_housing = load_epicc_active_housing(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_all_housing = load_epicc_all_housing(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_case_notes = load_epicc_case_notes(
-      epicc_paths,
-      analytic_fields
-    ),
-    epicc_support_services_tracker = load_epicc_support_services_tracker(
-      epicc_paths,
-      analytic_fields
-    )
+    epicc_client = epicc_client,
+    epicc_provider_placement = epicc_provider_placement,
+    epicc_pathclient = epicc_pathclient,
+    epicc_pathclient_legacy = epicc_pathclient_legacy_raw,
+    epicc_pathway_docsernos = epicc_pathway_docsernos,
+    epicc_ref = epicc_ref,
+    epicc_ic = epicc_ic,
+    epicc_two_week = epicc_two_week,
+    epicc_thirty_day = epicc_thirty_day,
+    epicc_three_month = epicc_three_month,
+    epicc_six_month = epicc_six_month,
+    epicc_reengagement = epicc_reengagement,
+    epicc_active_intake = epicc_active_intake,
+    epicc_all_intake = epicc_all_intake,
+    epicc_active_payor_source = epicc_active_payor_source,
+    epicc_all_payor_source = epicc_all_payor_source,
+    epicc_active_housing = epicc_active_housing,
+    epicc_all_housing = epicc_all_housing,
+    epicc_case_notes = epicc_case_notes,
+    epicc_support_services_tracker = epicc_support_services_tracker
   )
 
 # ===
