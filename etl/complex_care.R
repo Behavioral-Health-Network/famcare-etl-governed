@@ -163,6 +163,14 @@ complex_care_paths <- list(
     "FAMCare COMPLEX CARE Extract/",
     "Q_COMPLEX_CARE_CLINICAL_NOTES.csv"
   ),
+  complex_care_alerting_follow_up = make_path(
+    "FAMCare COMPLEX CARE Extract/",
+    "Q_COMPLEX_CARE_ALERTING_FOLLOW_UP.csv"
+  ),
+  complex_care_outreach_notes = make_path(
+    "FAMCare COMPLEX CARE Extract/",
+    "Q_COMPLEX_CARE_OUTREACH_NOTES.csv"
+  ),
   complex_care_mercy_beacn_benchmarks = make_path(
     "FAMCare COMPLEX CARE Extract/",
     "Q_COMPLEX_CARE_MERCY_BEACN_BENCHMARKS.csv"
@@ -310,6 +318,34 @@ load_complex_care_clinical_notes <- function(
     analytic_fields = analytic_fields
   )
 }
+
+## ===
+## Ingest complex_care_alerting_follow_up ----
+##   - more than one row per note for each enrollment
+## ===
+# load_complex_care_alerting_follow_up <- function(
+#     complex_care_paths,
+#     analytic_fields
+# ) {
+#   load_famcare_extract(
+#     path = complex_care_paths$complex_care_alerting_follow_up,
+#     analytic_fields = analytic_fields
+#   )
+# }
+
+## ===
+## Ingest complex_care_outreach_notes ----
+##   - more than one row per note for each enrollment
+## ===
+# load_complex_care_outreach_notes <- function(
+#     complex_care_paths,
+#     analytic_fields
+# ) {
+#   load_famcare_extract(
+#     path = complex_care_paths$complex_care_outreach_notes,
+#     analytic_fields = analytic_fields
+#   )
+# }
 
 ## ===
 ## Ingest complex_care_mercy_beacn_benchmarks ----
@@ -592,7 +628,8 @@ transform_complex_care_pathclient <- function(
         "Complex Care Roster" = "roster_docserno",
         "Clinical BEACN Metrics" = "pfp_metrics_docserno",
         "PfP Discharge" = "pfp_discharge_docserno",
-        "Complex Care Outreach Note" = "ccnotes_docserno"
+ #       "Complex Care Clinical Notes" = "ccnotes_docserno",
+        "Complex Care Outreach Notes" = "outreach_notes_docserno"
       )
     )
   
@@ -1258,6 +1295,10 @@ transform_complex_care_referral_flow <- function(
       )
     )
   
+  # outreach_notes <- clean_form(
+  #   complex_care$complex_care_outreach_notes
+  # )
+  
   ### ===
   ### 4. Start with pivoted pathclient ----
   ### ===
@@ -1278,7 +1319,6 @@ transform_complex_care_referral_flow <- function(
       tiedenrollment,
       roster_docserno,
       pfp_metrics_docserno,
-      ccnotes_docserno,
       pfp_discharge_docserno
     ) |>
     tidyr::pivot_longer(
