@@ -2281,7 +2281,7 @@ targets::tar_target(
       "C:/Users/",
       Sys.info()[7],
       "/Behavioral Health Network of Greater St. Louis/",
-      "BHN - Documents/Complex Care/Data & Evaluation/HIDI Analysis/",
+      "BHN - Documents/Complex Care/Data & Evaluation/PHI/HIDI Analysis/",
       "BHN_CM_Watchlist_",
       format(
         Sys.Date(),
