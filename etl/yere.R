@@ -767,7 +767,9 @@ transform_yere_referral_flow <- function(
     ) |>
     dplyr::select(
       -client_number,
-      -tiedenrollment
+      -tiedenrollment,
+      -client_needs_enrollment_starting_date,
+      -client_needs_enrollment_ending_date
     )
     caregiver_needs <- clean_form(
       yere$yere_caregiver_needs,
@@ -780,7 +782,9 @@ transform_yere_referral_flow <- function(
       -client_number,
       -caregiver_needs_client_last,
       -caregiver_needs_client_first,
-      -tiedenrollment
+      -tiedenrollment,
+      -caregiver_needs_enrollment_starting_date,
+      -caregiver_needs_enrollment_ending_date
     )
     client_family_needs <- clean_form(
       yere$yere_client_family_needs,
@@ -791,7 +795,9 @@ transform_yere_referral_flow <- function(
     ) |>
     dplyr::select(
       -client_number,
-      -tiedenrollment
+      -tiedenrollment,
+      -client_family_needs_enrollment_starting_date,
+      -client_family_needs_enrollment_ending_date
     )
   
   # Drop docserno from parent event forms to avoid suffix collisions (.x/.y) due
