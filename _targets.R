@@ -525,6 +525,24 @@ list(
  ),
  
  targets::tar_target(
+   complex_care_alerting_follow_up_file,
+   {
+     vpn_check
+     complex_care_paths$complex_care_alerting_follow_up
+   },
+   format = "file"
+  ),
+ 
+ targets::tar_target(
+   complex_care_outreach_notes_file,
+   {
+     vpn_check
+     complex_care_paths$complex_care_outreach_notes
+   },
+   format = "file"
+ ),
+ 
+ targets::tar_target(
   complex_care_mercy_beacn_benchmarks_file,
   {
     vpn_check
@@ -1292,6 +1310,22 @@ targets::tar_target(
   )
  ),
  
+targets::tar_target(
+  complex_care_alerting_follow_up_raw,
+  load_famcare_extract(
+    path = complex_care_alerting_follow_up_file,
+    analytic_fields = analytic_fields
+  )
+),
+
+targets::tar_target(
+  complex_care_outreach_notes_raw,
+  load_famcare_extract(
+    path = complex_care_outreach_notes_file,
+    analytic_fields = analytic_fields
+  )
+),
+
  targets::tar_target(
   complex_care_mercy_beacn_benchmarks_raw,
   load_famcare_extract(
@@ -2064,6 +2098,8 @@ targets::tar_target(
     complex_care_client = complex_care_client_raw,
     complex_care_roster = complex_care_roster_raw,
     complex_care_clinical_notes = complex_care_clinical_notes_raw,
+    complex_care_alerting_follow_up = complex_care_alerting_follow_up_raw,
+    complex_care_outreach_notes = complex_care_outreach_notes_raw,
     complex_care_mercy_beacn_benchmarks = 
       complex_care_mercy_beacn_benchmarks_raw,
     complex_care_pfp_discharge = complex_care_pfp_discharge_raw,
