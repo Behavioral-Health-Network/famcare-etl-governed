@@ -323,29 +323,29 @@ load_complex_care_clinical_notes <- function(
 ## Ingest complex_care_alerting_follow_up ----
 ##   - more than one row per note for each enrollment
 ## ===
-# load_complex_care_alerting_follow_up <- function(
-#     complex_care_paths,
-#     analytic_fields
-# ) {
-#   load_famcare_extract(
-#     path = complex_care_paths$complex_care_alerting_follow_up,
-#     analytic_fields = analytic_fields
-#   )
-# }
+load_complex_care_alerting_follow_up <- function(
+    complex_care_paths,
+    analytic_fields
+) {
+  load_famcare_extract(
+    path = complex_care_paths$complex_care_alerting_follow_up,
+    analytic_fields = analytic_fields
+  )
+}
 
 ## ===
 ## Ingest complex_care_outreach_notes ----
 ##   - more than one row per note for each enrollment
 ## ===
-# load_complex_care_outreach_notes <- function(
-#     complex_care_paths,
-#     analytic_fields
-# ) {
-#   load_famcare_extract(
-#     path = complex_care_paths$complex_care_outreach_notes,
-#     analytic_fields = analytic_fields
-#   )
-# }
+load_complex_care_outreach_notes <- function(
+    complex_care_paths,
+    analytic_fields
+) {
+  load_famcare_extract(
+    path = complex_care_paths$complex_care_outreach_notes,
+    analytic_fields = analytic_fields
+  )
+}
 
 ## ===
 ## Ingest complex_care_mercy_beacn_benchmarks ----
@@ -2010,6 +2010,10 @@ transform_complex_care_referral_flow <- function(
     ),
     joined_referral_flow = joined,
     
+    complex_care_alerting_follow_up =
+      complex_care$complex_care_alerting_follow_up,
+    complex_care_outreach_notes =
+      complex_care$complex_care_outreach_notes,
     ext_mercy_utilization = 
       complex_care$complex_care_ext_mercy_utilization_transformed,
     ext_atd_notifications = atd_temporal,
@@ -2214,6 +2218,8 @@ run_complex_care_etl <- function(
   complex_care_pathway_docsernos,
   complex_care_roster,
   complex_care_clinical_notes,
+  complex_care_alerting_follow_up,
+  complex_care_outreach_notes,
   complex_care_mercy_beacn_benchmarks,
   complex_care_pfp_discharge,
   complex_care_quality_of_life,
@@ -2267,6 +2273,8 @@ run_complex_care_etl <- function(
     complex_care_quality_of_life = complex_care_quality_of_life,
     complex_care_shelter_beds = complex_care_shelter_beds,
     complex_care_clinical_notes = complex_care_clinical_notes,
+    complex_care_alerting_follow_up = complex_care_alerting_follow_up,
+    complex_care_outreach_notes = complex_care_outreach_notes,
     complex_care_active_payor_source = complex_care_active_payor_source,
     complex_care_all_payor_source = complex_care_all_payor_source,
     complex_care_active_housing = complex_care_active_housing,
