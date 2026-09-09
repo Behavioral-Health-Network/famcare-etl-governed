@@ -1141,6 +1141,15 @@ targets::tar_target(
    },
    format = "file"
  ),
+
+targets::tar_target(
+  yere_needs_unified_file,
+  {
+    vpn_check
+    yere_paths$yere_needs_unified
+  },
+  format = "file"
+),
  
  # ===
  ## G. RAW READ targets that depend on file targets ----
@@ -1876,6 +1885,14 @@ targets::tar_target(
       analytic_fields = analytic_fields
     )
   ),
+
+  targets::tar_target(
+    yere_needs_unified_raw,
+    load_famcare_extract(
+      path = yere_needs_unified_file,
+      analytic_fields = analytic_fields
+    )
+  ),
  
   # ===
   ## H. Core Pathclient transformation targets ----
@@ -2201,7 +2218,8 @@ targets::tar_target(
     yere_all_housing = yere_all_housing_raw,
     yere_client_needs = yere_client_needs_raw,
     yere_caregiver_needs = yere_caregiver_needs_raw,
-    yere_client_family_needs = yere_client_family_needs_raw
+    yere_client_family_needs = yere_client_family_needs_raw,
+    yere_needs_unified = yere_needs_unified_raw
     )
   ),
  
