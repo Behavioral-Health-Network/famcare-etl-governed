@@ -468,6 +468,16 @@ list(
    format = "file"
  ),
  
+ targets::tar_target(
+   bcr_ext_caregiver_survey_file,
+   {
+     vpn_check
+     bcr_paths$bcr_ext_caregiver_survey
+   },
+   format = "file"
+ ),
+ 
+ 
  ### Complex Care ----
  
  targets::tar_target(
@@ -655,6 +665,15 @@ targets::tar_target(
   {
     vpn_check
     complex_care_paths$complex_care_ext_eto_roster
+  },
+  format = "file"
+),
+
+targets::tar_target(
+  complex_care_ext_stlco_arrest_data_file,
+  {
+    vpn_check
+    complex_care_paths$complex_care_ext_stlco_arrest_data
   },
   format = "file"
 ),
@@ -1268,7 +1287,15 @@ targets::tar_target(
      analytic_fields = analytic_fields
    )
  ),
- 
+
+targets::tar_target(
+  bcr_ext_caregiver_survey_raw,
+  load_famcare_extract(
+    path = bcr_ext_caregiver_survey_file,
+    analytic_fields = analytic_fields
+  )
+),
+
  ### Complex Care ----
  
  targets::tar_target(
@@ -1453,6 +1480,14 @@ targets::tar_target(
   load_complex_care_ext_eto_roster(
     complex_care_ext_eto_roster_file,
     analytic_fields
+  )
+),
+
+targets::tar_target(
+  complex_care_ext_stlco_arrest_data_raw,
+  load_famcare_extract(
+    path = complex_care_ext_stlco_arrest_data_file,
+    analytic_fields = analytic_fields
   )
 ),
 
@@ -1974,7 +2009,7 @@ targets::tar_target(
     complex_care_ext_eto_roster,
     complex_care_ext_eto_roster_raw
   ),
-  
+
   ### EPICC ----
   
   ### ERE ----
@@ -2099,6 +2134,7 @@ targets::tar_target(
      bcr_all_housing = bcr_all_housing_raw,
      bcr_referral_type_map = bcr_referral_type_map,
      bcr_referral_subtype_map = bcr_referral_subtype_map,
+     bcr_ext_caregiver_survey = bcr_ext_caregiver_survey_raw,
      master_lookup = master_lookup
    )
  ),
@@ -2135,7 +2171,8 @@ targets::tar_target(
       complex_care_ext_pfp_service_history_raw,
     complex_care_ext_pfp_metrics_legacy = complex_care_ext_pfp_metrics_legacy,
     complex_care_ext_pcc_facility_lut = complex_care_ext_pcc_facility_lut,
-    complex_care_ext_eto_roster = complex_care_ext_eto_roster
+    complex_care_ext_eto_roster = complex_care_ext_eto_roster,
+    complex_care_ext_stlco_arrest_data = complex_care_ext_stlco_arrest_data_raw
   )
  ),
  

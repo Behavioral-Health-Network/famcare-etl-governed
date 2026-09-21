@@ -744,6 +744,10 @@ bcr_paths <- list(
   bcr_all_housing = make_path(
     "FAMCare BCR Extract/",
     "Q_BCR_ALL_HOUSING_STATUS.csv"
+  ),
+  bcr_ext_caregiver_survey = make_all_file_paths(
+    "EXT BCR Caregiver Survey",
+    "ext_bcr_caregiver_survey_\\d{8}\\.(csv|xlsx|xls)$"
   )
 )
 
@@ -949,6 +953,20 @@ load_bcr_all_housing <- function(
   ) {
   load_famcare_extract(
     path = bcr_paths$bcr_all_housing,
+    analytic_fields = analytic_fields
+  )
+}
+
+## ===
+## Ingest bcr_ext_caregiver_survey ----
+##   - multiple rows per caregiver
+## ===
+load_bcr_ext_caregiver_survey <- function(
+    complex_care_paths,
+    analytic_fields
+) {
+  load_famcare_extract(
+    path = complex_care_paths$bcr_ext_caregiver_survey,
     analytic_fields = analytic_fields
   )
 }
@@ -1539,6 +1557,82 @@ transform_bcr_referral_flow <- function(
     subtype_map
   )
   
+  likert_map <- c(
+    "Strongly Agree" = 5,
+    "Agree" = 4,
+    "Neutral" = 3,
+    "Disagree" = 2,
+    "Strongly Disagree" = 1
+  )
+  
+  ext_caregiver_survey <- bcr$bcr_ext_caregiver_survey |> 
+    slice(
+      -1
+    ) |> 
+    select(
+      -end_date,
+      -ip_address,
+      -email_address,
+      -first_name,
+      -last_name,
+      -custom_data_1,
+      -rq_flag
+    ) |> 
+    rename(
+      inc_understanding_support_lo = 
+        this_training_increased_my_understanding_of_how_to_support_my_loved_one,
+      new_resource_tool = 
+        this_training_introduced_me_to_a_new_resource_or_tool,
+      confident_applying = 
+        i_feel_confident_in_applying_something_i_learned_in_this_training_to_my_caregiving_role,
+      most_valuable_oe = 
+        what_was_the_most_valuable_part_of_this_training_for_you,
+      suggestions_improve = 
+        any_suggestions_on_how_we_could_improve_this_training,
+      reside_stl_city = 
+        do_you_reside_in_stl_city,
+      caregiver_relationship = 
+        the_person_who_i_care_for_is_my,
+      other = 
+        x18
+    )
+  
+  likert_idx <- ext_caregiver_survey |>
+    summarise(
+      across(
+        everything(),
+        ~ all(
+          !is.na(
+            .x
+          ) &
+            .x %in% names(
+              likert_map
+              )
+          )
+      )
+    ) |>
+    unlist() |>
+    which()
+  
+  likert_cols <- names(
+    ext_caregiver_survey
+    )[likert_idx]
+  
+  ext_caregiver_survey <- ext_caregiver_survey |> 
+    mutate(
+      across(
+        all_of(
+          likert_cols
+          ),
+        ~ recode(
+          stringr::str_trim(
+            .x
+            ),
+          !!!likert_map
+        )
+      )
+    )
+  
   # --- Output bundle ---
   output <- list(
     scd = list(
@@ -1556,7 +1650,8 @@ transform_bcr_referral_flow <- function(
       rp_long = rp_long,
       ccs = ccs
     ),
-    joined_referral_flow = joined
+    joined_referral_flow = joined,
+    ext_caregiver_survey = ext_caregiver_survey
   )
   
   output
@@ -1602,6 +1697,7 @@ run_bcr_etl <- function(
     bcr_all_housing,
     bcr_referral_type_map,
     bcr_referral_subtype_map,
+    bcr_ext_caregiver_survey,
     master_lookup,
     start_date = NULL,
     end_date   = NULL,
@@ -1630,7 +1726,8 @@ run_bcr_etl <- function(
     bcr_active_payor_source = bcr_active_payor_source,
     bcr_all_payor_source = bcr_all_payor_source,
     bcr_active_housing = bcr_active_housing,
-    bcr_all_housing = bcr_all_housing
+    bcr_all_housing = bcr_all_housing,
+    bcr_ext_caregiver_survey = bcr_ext_caregiver_survey
   )
   
   # 2. Pathclient transform
