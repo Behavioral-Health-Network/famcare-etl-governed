@@ -225,6 +225,10 @@ complex_care_paths <- list(
   complex_care_ext_eto_roster = make_path(
     "EXT ETO Extracts",
     "ext_eto_complex_care_roster.csv"
+  ),
+  complex_care_ext_stlco_arrest_data = make_all_file_paths(
+    "EXT STLCO Arrest Data Extracts",
+    "ext_stl_county_arrest_data_\\d{8}\\.(csv|xlsx|xls)$"
   )
 )
 
@@ -559,6 +563,20 @@ load_complex_care_ext_eto_roster <- function(
     path = path,
     analytic_fields = analytic_fields
     )
+}
+
+## ===
+## Ingest complex_care_ext_stlco_arrest_data ----
+##   - multiple rows per patient name
+## ===
+load_complex_care_ext_stlco_arrest_data <- function(
+    complex_care_paths,
+    analytic_fields
+) {
+  load_famcare_extract(
+    path = complex_care_paths$complex_care_ext_stlco_arrest_data,
+    analytic_fields = analytic_fields
+  )
 }
 
 # ===
@@ -2020,7 +2038,8 @@ transform_complex_care_referral_flow <- function(
     ext_pfp_service_history = complex_care$complex_care_ext_pfp_service_history,
     ext_pfp_metrics_legacy = complex_care$complex_care_ext_pfp_metrics_legacy,
     ext_pcc_facility_lut = complex_care$complex_care_ext_pcc_facility_lut,
-    ext_eto_complex_care_roster = complex_care$complex_care_ext_eto_roster
+    ext_eto_complex_care_roster = complex_care$complex_care_ext_eto_roster,
+    ext_sltco_arrest_data = complex_care$complex_care_ext_stlco_arrest_data
   )
 
   # Return the joined_referral_flow and scd
@@ -2235,6 +2254,7 @@ run_complex_care_etl <- function(
   complex_care_ext_pfp_metrics_legacy,
   complex_care_ext_pcc_facility_lut,
   complex_care_ext_eto_roster,
+  complex_care_ext_stlco_arrest_data,
   start_date = NULL,
   end_date = NULL,
   fiscal_system = c(
@@ -2293,7 +2313,8 @@ run_complex_care_etl <- function(
     complex_care_ext_pfp_service_history = complex_care_ext_pfp_service_history,
     complex_care_ext_pfp_metrics_legacy = complex_care_ext_pfp_metrics_legacy,
     complex_care_ext_pcc_facility_lut = complex_care_ext_pcc_facility_lut,
-    complex_care_ext_eto_roster = complex_care_ext_eto_roster
+    complex_care_ext_eto_roster = complex_care_ext_eto_roster,
+    complex_care_ext_stlco_arrest_data = complex_care_ext_stlco_arrest_data
   )
   
   # ===
