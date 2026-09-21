@@ -25,6 +25,7 @@ library(ggplot2)
 library(janitor)
 library(sf)
 library(tigris)
+library(targets)
 
 # ===
 # 2. Global options ----
