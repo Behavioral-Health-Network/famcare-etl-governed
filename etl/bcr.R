@@ -957,17 +957,32 @@ load_bcr_all_housing <- function(
   )
 }
 
-## ===
-## Ingest bcr_ext_caregiver_survey ----
-##   - multiple rows per caregiver
-## ===
+# ===
+# Ingest bcr_ext_caregiver_survey ----
+#   - multiple rows per caregiver
+# ===
 load_bcr_ext_caregiver_survey <- function(
-    complex_care_paths,
+    bcr_paths,
     analytic_fields
 ) {
-  load_famcare_extract(
-    path = complex_care_paths$bcr_ext_caregiver_survey,
-    analytic_fields = analytic_fields
+  purrr::map_dfr(
+    bcr_paths$bcr_ext_caregiver_survey,
+    ~ {
+      df <- load_famcare_extract(
+        path = .x,
+        analytic_fields = analytic_fields
+      )
+
+      event_date <- stringr::str_extract(
+        .x,
+         "\\d{8}"
+         ) |>
+        lubridate::ymd()
+
+      df |> dplyr::mutate(
+        event_date = event_date
+        )
+    }
   )
 }
 
@@ -1592,9 +1607,7 @@ transform_bcr_referral_flow <- function(
       reside_stl_city = 
         do_you_reside_in_stl_city,
       caregiver_relationship = 
-        the_person_who_i_care_for_is_my,
-      other = 
-        x18
+        the_person_who_i_care_for_is_my
     )
   
   likert_idx <- ext_caregiver_survey |>
