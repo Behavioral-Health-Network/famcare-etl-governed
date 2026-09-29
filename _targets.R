@@ -1290,9 +1290,9 @@ targets::tar_target(
 
 targets::tar_target(
   bcr_ext_caregiver_survey_raw,
-  load_famcare_extract(
-    path = bcr_ext_caregiver_survey_file,
-    analytic_fields = analytic_fields
+  load_bcr_ext_caregiver_survey(
+    bcr_paths,
+    analytic_fields
   )
 ),
 
