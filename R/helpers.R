@@ -1232,7 +1232,6 @@ load_ext_eto_extract <- function(
   df
 }
 
-
 # ===
 # 21. Program-agnostic data subset function for use in parent projects ----
 #   - Fiscal period-neutral (meaning federal or state fiscal systems)
@@ -1265,7 +1264,7 @@ build_subsets <- function(
         enrollment_ending_date >= start_date &
         enrollment_ending_date <= end_date
     )
-  
+
     list(
       initiated_within_period = dplyr::filter(
         df,
@@ -1335,7 +1334,7 @@ build_complex_care_subsets <- function(
         roster_added_cohort_date <= end_date,
         # Still active
         still_active(
-          df
+          .data
         )
       ),
     
@@ -1353,7 +1352,7 @@ build_complex_care_subsets <- function(
           benchmarks_complete_admission_service_date >= end_date,
         # Still active
         still_active(
-          df
+          .data
         )
       ),
     
@@ -1371,7 +1370,7 @@ build_complex_care_subsets <- function(
           benchmarks_treatment_team_assignment_date >= end_date,
         # Still active
         still_active(
-          df
+          .data
         )
       )
   )
