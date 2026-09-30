@@ -644,7 +644,7 @@ transform_complex_care_pathclient <- function(
       event_key = dplyr::recode(
         pwy_event,
         "Complex Care Roster" = "roster_docserno",
-        "Clinical BEACN Metrics" = "pfp_metrics_docserno",
+        "Clinical BEACN Metrics" = "benchmarks_docserno",
         "PfP Discharge" = "pfp_discharge_docserno",
  #       "Complex Care Clinical Notes" = "ccnotes_docserno",
         "Complex Care Outreach Notes" = "outreach_notes_docserno"
@@ -739,7 +739,7 @@ transform_complex_care_pathclient <- function(
     )
 
   # Pivot only the pwy_forms_docserno column to produce one column per
-  # event_docserno (roster_docserno, pfp_metrics_docserno, etc.). There should
+  # event_docserno (roster_docserno, benchmarks_docserno, etc.). There should
   # only be one docserno per event per enrollment. If duplicates exist,
   # values_fn = first(na.omit(.x)) selects the first non-NA value. Exception
   # reports should detect duplicates, but this ensures that duplicates do not
@@ -1314,10 +1314,21 @@ transform_complex_care_referral_flow <- function(
         "docserno"
       )
     )
-  
-  # outreach_notes <- clean_form(
-  #   complex_care$complex_care_outreach_notes
-  # )
+
+  outreach_notes <- complex_care$complex_care_outreach_notes |> 
+    mutate(
+      alert_week_date = stringr::str_remove(
+        alert_week,
+        "Week of "
+      ) |> 
+        mdy(),
+      alert_iso_week = lubridate::isoweek(
+        alert_week_date
+      ),
+      alert_ios_year = lubridate::isoyear(
+        alert_week_date
+      )
+    )
   
   ### ===
   ### 4. Start with pivoted pathclient ----
@@ -1338,7 +1349,7 @@ transform_complex_care_referral_flow <- function(
       client_number,
       tiedenrollment,
       roster_docserno,
-      pfp_metrics_docserno,
+      benchmarks_docserno,
       pfp_discharge_docserno
     ) |>
     tidyr::pivot_longer(
@@ -2033,7 +2044,7 @@ transform_complex_care_referral_flow <- function(
     complex_care_alerting_follow_up =
       complex_care$complex_care_alerting_follow_up,
     complex_care_outreach_notes =
-      complex_care$complex_care_outreach_notes,
+      outreach_notes,
     ext_mercy_utilization = 
       complex_care$complex_care_ext_mercy_utilization_transformed,
     ext_atd_notifications = atd_temporal,
