@@ -718,7 +718,9 @@ transform_ere_referral_flow <- function(
       hosp_visit = hosp_visit,
       threem = threem,
       sixm = sixm,
-      bhs = bhs
+      bhs = bhs,
+      payor = payor,
+      housing = housing
     ),
     joined_referral_flow = joined
   )
