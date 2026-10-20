@@ -185,6 +185,10 @@ yere_paths <- list(
   "FAMCare YERE Extract/",
   "Q_YERE_ALL_HOUSING_STATUS.csv"
  ),
+ yere_initial_latest_housing_status = make_path(
+   "FAMCare YERE Extract/",
+   "Q_YERE_INITIAL_LATEST_HOUSING_STATUS.csv"
+ ),
  yere_active_payor_source = make_path(
   "FAMCare YERE Extract/",
   "Q_YERE_ACTIVE_PAYOR_SOURCE.csv"
@@ -192,6 +196,10 @@ yere_paths <- list(
  yere_all_payor_source = make_path(
   "FAMCare YERE Extract/",
   "Q_YERE_ALL_PAYOR_SOURCE.csv"
+ ),
+ yere_initial_latest_payor_source = make_path(
+   "FAMCare YERE Extract/",
+   "Q_YERE_INITIAL_LATEST_PAYOR_SOURCE.csv"
  ),
  yere_client_needs = make_path(
   "FAMCare YERE Extract/",
@@ -213,284 +221,11 @@ yere_paths <- list(
 
 # ===
 # 2. Ingestion/Loading Functions ----
+#
+# The loader functions were rendered obsolete when targets for each raw file 
+# were added to _targets.R, so they have been removed. They were essentially
+# dead code at this point. 
 # ===
-
-# ===
-# Ingest yere_client ----
-#   - one row per client
-# ===
-load_yere_client <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_client,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_provider_placement ----
-#   - one row per enrollment - available to supplement yere_pathclient but not
-#       joined
-#   - Renames key fields
-# ===
-load_yere_provider_placement <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_provider_placement,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_pathclient ----
-#   - Renames key fields
-#   - Filters out rows with missing tiedenrollment
-#   - Pivoting handled separately, so this is not one row per enrollment yet
-# ===
-load_yere_pathclient <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_pathclient,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_pathway_docsernos ----
-#   - one row per Pathway Event form
-# ===
-load_yere_pathway_docsernos <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_pathway_docsernos,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_referral ----
-#   - one row per referral for each enrollment
-# ===
-load_yere_ref <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_ref,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_initial_assessment ----
-#   - one row per initial contact for each enrollment
-# ===
-load_yere_ia <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_ia,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_hosp_visit ----
-#   - one row per hospital visit note for each enrollment
-# ===
-load_yere_hosp_visit <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_hosp_visit,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_thirty_day ----
-#   - one row per thirty-day follow-up for each enrollment
-# ===
-load_yere_thirty_day <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_thirty_day,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_three_month ----
-#   - one row per three-month follow-up for each enrollment
-# ===
-load_yere_three_month <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_three_month,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_six_month ----
-#   - one row per six-month follow-up for each enrollment
-# ===
-load_yere_six_month <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_six_month,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_bhs ----
-#   - one row per Pathway Event record for each enrollment
-# ===
-load_yere_bhs <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_bhs,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_active_payor_source ----
-#   - one row per active payor source per enrollment
-#   - Renames key fields
-# ===
-load_yere_active_payor_source <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_active_payor_source,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_all_payor_source ----
-#   - long form with one row per payor source record per enrollment, which
-#       means that this duplicates on enrollments
-# ===
-load_yere_all_payor_source <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_all_payor_source,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_active_housing_status ----
-#   - one row per active housing status per enrollment
-# ===
-load_yere_active_housing <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_active_housing,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_all_housing_status ----
-#   - long form with one row per housing status record per enrollment, which
-#       means that this duplicates on enrollments
-# ===
-load_yere_all_housing <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_all_housing,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_client_needs ----
-#   - more than one row per client
-#   - one row per enrollment
-# ===
-load_yere_client_needs <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_client_needs,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_caregiver_needs ----
-#   - more than one row per client
-#   - one row per enrollment
-# ===
-load_yere_caregiver_needs <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_caregiver_needs,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_client_family_needs ----
-#   - more than one row per client
-#   - one row per enrollment
-# ===
-load_yere_client_family_needs <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_client_family_needs,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest yere_needs_unified ----
-#   - more than one row per client
-#   - one row per enrollment
-# ===
-load_yere_needs_unified <- function(
-    yere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = yere_paths$yere_needs_unified,
-    analytic_fields = analytic_fields
-  )
-}
 
 # ===
 # 3. Transformation Layer Overview ----
@@ -757,26 +492,6 @@ transform_yere_referral_flow <- function(
   }
   
   # Clean each active SCD summation tables
-    payor <- clean_form(
-      yere$yere_active_payor_source,
-      "payor_"
-    ) |>
-    dplyr::rename(
-      parent_docserno = payor_parent_docserno
-    ) |>
-    dplyr::select(
-      -client_number
-    )
-    housing <- clean_form(
-      yere$yere_active_housing,
-      "housing_"
-    ) |>
-    dplyr::rename(
-      parent_docserno = housing_parent_docserno
-    ) |>
-    dplyr::select(
-      -client_number
-    )
     client_needs <- clean_form(
       yere$yere_client_needs,
       "client_needs_"
@@ -905,6 +620,26 @@ transform_yere_referral_flow <- function(
       )
     )
   
+  payor <- clean_form(
+    yere$yere_initial_latest_payor_source,
+    "payor_"
+  ) |> 
+    dplyr::select(
+      -tidyselect::ends_with(
+        "docserno"
+      )
+    )
+  
+  housing <- clean_form(
+    yere$yere_initial_latest_housing_status,
+    "housing_"
+  ) |> 
+    dplyr::select(
+      -tidyselect::ends_with(
+        "docserno"
+      )
+    )
+  
   # Start with pivoted pathclient
   pc <- yere$pathclient
   
@@ -969,39 +704,6 @@ transform_yere_referral_flow <- function(
       )
   }
   
-  # Diagnostic: payor_one shows which active payor source SCD row was selected
-  # for each enrollment. Useful for debugging missing or stale SCD values.
-  payor_one   <- collapse_scd(
-    payor
-  )
-  
-  # Diagnostic: housing_one shows which active housing status SCD row was
-  # selected for each enrollment. Useful for debugging missing or stale SCD
-  # values.
-  housing_one <- collapse_scd(
-    housing
-  )
-  
-  # Diagnostic: client_needs_one shows which client needs SCD row was selected
-  # for each enrollment. Useful for debugging missing or stale SCD values.
-  # client_needs_one  <- collapse_scd(
-  #   client_needs
-  # )
-  
-  # Diagnostic: caregiver_needs_one shows which caregiver needs SCD row was
-  # selected for each enrollment. Useful for debugging missing or stale SCD
-  # values.
-  # caregiver_needs_one  <- collapse_scd(
-  #   caregiver_needs
-  # )
-  
-  # Diagnostic: caregiver_needs_one shows which caregiver needs SCD row was
-  # selected for each enrollment. Useful for debugging missing or stale SCD
-  # values.
-  # client_family_needs_one  <- collapse_scd(
-  #   client_family_needs
-  # )
-  
   # Diagnostic: needs_unified_one shows which caregiver needs SCD row was
   # selected for each enrollment. Useful for debugging missing or stale SCD
   # values.
@@ -1012,41 +714,6 @@ transform_yere_referral_flow <- function(
   # Start join sequence with joined "authoritative" pathclient
   joined <- pc |>
     # Join SCD "active" summaries once per enrollment
-    dplyr::left_join(
-      payor_one,
-      by = c(
-        "client_number",
-        "tiedenrollment"
-      )
-    ) |>
-    dplyr::left_join(
-      housing_one,
-      by = c(
-        "client_number",
-        "tiedenrollment"
-      )
-    ) |>
-    # dplyr::left_join(
-    #   client_needs_one,
-    #   by = c(
-    #     "client_number",
-    #     "tiedenrollment"
-    #   )
-    # ) |>
-    # dplyr::left_join(
-    #   caregiver_needs_one,
-    #   by = c(
-    #     "client_number",
-    #     "tiedenrollment"
-    #   )
-    # ) |>
-    # dplyr::left_join(
-    #   client_family_needs_one,
-    #   by = c(
-    #     "client_number",
-    #     "tiedenrollment"
-    #   )
-    # ) |> 
     dplyr::left_join(
       needs_unified_one,
       by = c(
@@ -1104,16 +771,25 @@ transform_yere_referral_flow <- function(
         "client_number",
         "tiedenrollment"
       )
+    ) |> 
+    dplyr::left_join(
+      payor,
+      by = join_by(
+        "client_number",
+        "tiedenrollment"
+      )
+    ) |> 
+    dplyr::left_join(
+      housing,
+      by = join_by(
+        "client_number",
+        "tiedenrollment"
+      )
     )
   
   # Store the final joined referral flow table
   output <- list(
     scd = list(
-      payor_one   = payor_one,
-      housing_one = housing_one,
-      # client_needs_one = client_needs_one,
-      # caregiver_needs_one = caregiver_needs_one,
-      # client_family_needs_one = client_family_needs_one,
       needs_unified_one = needs_unified_one
     ),
     parent_map = parent_map,
@@ -1124,7 +800,9 @@ transform_yere_referral_flow <- function(
       thirtyd = thirtyd,
       threem = threem,
       sixm = sixm,
-      bhs = bhs
+      bhs = bhs,
+      payor = payor,
+      housing = housing
     ),
     joined_referral_flow = joined
   )
@@ -1173,8 +851,10 @@ run_yere_etl <- function(
     yere_bhs,
     yere_active_payor_source,
     yere_all_payor_source,
+    yere_initial_latest_payor_source,
     yere_active_housing,
     yere_all_housing,
+    yere_initial_latest_housing_status,
     yere_client_needs,
     yere_caregiver_needs,
     yere_client_family_needs,
@@ -1208,8 +888,10 @@ run_yere_etl <- function(
     yere_bhs = yere_bhs,
     yere_active_payor_source = yere_active_payor_source,
     yere_all_payor_source = yere_all_payor_source,
+    yere_initial_latest_payor_source = yere_initial_latest_payor_source,
     yere_active_housing = yere_active_housing,
     yere_all_housing = yere_all_housing,
+    yere_initial_latest_housing_status = yere_initial_latest_housing_status,
     yere_client_needs = yere_client_needs,
     yere_caregiver_needs = yere_caregiver_needs,
     yere_client_family_needs = yere_client_family_needs,
