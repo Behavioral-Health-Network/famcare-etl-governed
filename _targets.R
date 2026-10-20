@@ -970,6 +970,15 @@ targets::tar_target(
   format = "file"
  ),
  
+targets::tar_target(
+  ere_initial_latest_payor_source_file,
+  {
+    vpn_check
+    ere_paths$ere_initial_latest_payor_source
+  },
+  format = "file"
+),
+
  targets::tar_target(
   ere_active_housing_file,
   {
@@ -988,6 +997,15 @@ targets::tar_target(
   format = "file"
  ),
  
+targets::tar_target(
+  ere_initial_latest_housing_status_file,
+  {
+    vpn_check
+    ere_paths$ere_initial_latest_housing_status
+  },
+  format = "file"
+),
+
  targets::tar_target(
   ere_client_needs_file,
   {
@@ -1117,6 +1135,15 @@ targets::tar_target(
  ),
  
  targets::tar_target(
+  yere_initial_latest_payor_source_file,
+  {
+    vpn_check
+    yere_paths$yere_initial_latest_payor_source
+  },
+  format = "file"
+ ),
+
+ targets::tar_target(
   yere_active_housing_file,
   {
     vpn_check
@@ -1134,7 +1161,16 @@ targets::tar_target(
   format = "file"
  ),
  
- targets::tar_target(
+targets::tar_target(
+  yere_initial_latest_housing_status_file,
+  {
+    vpn_check
+    yere_paths$yere_initial_latest_housing_status
+  },
+  format = "file"
+),
+
+targets::tar_target(
   yere_client_needs_file,
   {
     vpn_check
@@ -1751,6 +1787,14 @@ targets::tar_target(
   )
  ),
  
+targets::tar_target(
+  ere_initial_latest_payor_source_raw,
+  load_famcare_extract(
+    path = ere_initial_latest_payor_source_file,
+    analytic_fields = analytic_fields
+  )
+),
+
  targets::tar_target(
   ere_active_housing_raw,
   load_famcare_extract(
@@ -1766,7 +1810,15 @@ targets::tar_target(
    analytic_fields = analytic_fields
   )
  ),
- 
+
+targets::tar_target(
+  ere_initial_latest_housing_status_raw,
+  load_famcare_extract(
+    path = ere_initial_latest_housing_status_file,
+    analytic_fields = analytic_fields
+  )
+),
+
  targets::tar_target(
   ere_client_needs_raw,
   load_famcare_extract(
@@ -1882,6 +1934,14 @@ targets::tar_target(
  ),
  
  targets::tar_target(
+  yere_initial_latest_payor_source_raw,
+  load_famcare_extract(
+    path = yere_initial_latest_payor_source_file,
+    analytic_fields = analytic_fields
+  )
+ ),
+
+ targets::tar_target(
   yere_active_housing_raw,
   load_famcare_extract(
    path = yere_active_housing_file,
@@ -1897,6 +1957,14 @@ targets::tar_target(
   )
  ),
  
+targets::tar_target(
+  yere_initial_latest_housing_status_raw,
+  load_famcare_extract(
+    path = yere_initial_latest_housing_status_file,
+    analytic_fields = analytic_fields
+  )
+),
+
   targets::tar_target(
     yere_client_needs_raw,
     load_famcare_extract(
@@ -2226,8 +2294,10 @@ targets::tar_target(
    ere_bhs = ere_bhs_raw,
    ere_active_payor_source = ere_active_payor_source_raw,
    ere_all_payor_source = ere_all_payor_source_raw,
+   ere_initial_latest_payor_source = ere_initial_latest_payor_source_raw,
    ere_active_housing = ere_active_housing_raw,
    ere_all_housing = ere_all_housing_raw,
+   ere_initial_latest_housing_status = ere_initial_latest_housing_status_raw,
    ere_client_needs = ere_client_needs_raw
   )
  ),
@@ -2251,8 +2321,10 @@ targets::tar_target(
     yere_bhs = yere_bhs_raw,
     yere_active_payor_source = yere_active_payor_source_raw,
     yere_all_payor_source = yere_all_payor_source_raw,
+    yere_initial_latest_payor_source = yere_initial_latest_payor_source_raw,
     yere_active_housing = yere_active_housing_raw,
     yere_all_housing = yere_all_housing_raw,
+    yere_initial_latest_housing_status = yere_initial_latest_housing_status_raw,
     yere_client_needs = yere_client_needs_raw,
     yere_caregiver_needs = yere_caregiver_needs_raw,
     yere_client_family_needs = yere_client_family_needs_raw,

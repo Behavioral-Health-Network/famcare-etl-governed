@@ -180,6 +180,10 @@ ere_paths <- list(
   "FAMCare ERE Extract/",
   "Q_ERE_ALL_HOUSING_STATUS.csv"
  ),
+ ere_initial_latest_housing_status = make_path(
+   "FAMCare ERE Extract/",
+   "Q_ERE_INITIAL_LATEST_HOUSING_STATUS.csv"
+ ),
  ere_active_payor_source = make_path(
   "FAMCare ERE Extract/",
   "Q_ERE_ACTIVE_PAYOR_SOURCE.csv"
@@ -187,6 +191,10 @@ ere_paths <- list(
  ere_all_payor_source = make_path(
   "FAMCare ERE Extract/",
   "Q_ERE_ALL_PAYOR_SOURCE.csv"
+ ),
+ ere_initial_latest_payor_source = make_path(
+   "FAMCare ERE Extract/",
+   "Q_ERE_INITIAL_LATEST_PAYOR_SOURCE.csv"
  ),
  ere_client_needs = make_path(
   "FAMCare ERE Extract/",
@@ -196,224 +204,11 @@ ere_paths <- list(
 
 # ===
 # 2. Ingestion/Loading Functions ----
+#
+# The loader functions were rendered obsolete when targets for each raw file 
+# were added to _targets.R, so they have been removed. They were essentially
+# dead code at this point. 
 # ===
-
-# ===
-# Ingest ere_client ----
-#   - one row per client
-# ===
-load_ere_client <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_client,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_provider_placement ----
-#   - one row per enrollment - available to supplement ere_pathclient but not
-#       joined
-#   - Renames key fields
-# ===
-load_ere_provider_placement <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_provider_placement,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_pathclient ----
-#   - Renames key fields
-#   - Filters out rows with missing tiedenrollment
-#   - Pivoting handled separately, so this is not one row per enrollment yet
-# ===
-load_ere_pathclient <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_pathclient,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_pathway_docsernos ----
-#   - one row per Pathway Event form
-# ===
-load_ere_pathway_docsernos <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_pathway_docsernos,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_referral ----
-#   - one row per referral for each enrollment
-# ===
-load_ere_ref <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_ref,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_initial_assessment ----
-#   - one row per initial contact for each enrollment
-# ===
-load_ere_ihna <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_ihna,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_hosp_visit ----
-#   - one row per hospital visit note for each enrollment
-# ===
-load_ere_hosp_visit <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_hosp_visit,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_three_month ----
-#   - one row per three-month follow-up for each enrollment
-# ===
-load_ere_three_month <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_three_month,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_six_month ----
-#   - one row per six-month follow-up for each enrollment
-# ===
-load_ere_six_month <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_six_month,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_bhs ----
-#   - one row per Pathway Event record for each enrollment
-# ===
-load_ere_bhs <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_bhs,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_active_payor_source ----
-#   - one row per active payor source per enrollment
-#   - Renames key fields
-# ===
-load_ere_active_payor_source <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_active_payor_source,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_all_payor_source ----
-#   - long form with one row per payor source record per enrollment, which
-#       means that this duplicates on enrollments
-# ===
-load_ere_all_payor_source <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_all_payor_source,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_active_housing_status ----
-#   - one row per active housing status per enrollment
-# ===
-load_ere_active_housing <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_active_housing,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_all_housing_status ----
-#   - long form with one row per housing status record per enrollment, which
-#       means that this duplicates on enrollments
-# ===
-load_ere_all_housing <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_all_housing,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest ere_client_needs ----
-#   - more than one row per client
-# ===
-load_ere_client_needs <- function(
-    ere_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = ere_paths$ere_client_needs,
-    analytic_fields = analytic_fields
-  )
-}
 
 # ===
 # 3. Transformation Layer Overview ----
@@ -680,26 +475,6 @@ transform_ere_referral_flow <- function(
   }
   
   # Clean each active SCD summation tables
-  payor <- clean_form(
-    ere$ere_active_payor_source,
-    "payor_"
-  ) |>
-    dplyr::rename(
-      parent_docserno = payor_parent_docserno
-    ) |>
-    dplyr::select(
-      -client_number
-    )
-  housing <- clean_form(
-    ere$ere_active_housing,
-    "housing_"
-  ) |>
-    dplyr::rename(
-      parent_docserno = housing_parent_docserno
-    ) |>
-    dplyr::select(
-      -client_number
-    )
   client_needs <- clean_form(
     ere$ere_client_needs,
     "client_needs_"
@@ -774,6 +549,26 @@ transform_ere_referral_flow <- function(
       )
     )
   
+  payor <- clean_form(
+    ere$ere_initial_latest_payor_source,
+    "payor_"
+  ) |> 
+    dplyr::select(
+      -tidyselect::ends_with(
+        "docserno"
+      )
+    )
+  
+  housing <- clean_form(
+    ere$ere_initial_latest_housing_status,
+    "housing_"
+  ) |> 
+    dplyr::select(
+      -tidyselect::ends_with(
+        "docserno"
+      )
+    )
+  
   # Start with pivoted pathclient
   pc <- ere$pathclient
   
@@ -837,19 +632,6 @@ transform_ere_referral_flow <- function(
       )
   }
   
-  # Diagnostic: payor_one shows which active payor source SCD row was selected
-  # for each enrollment. Useful for debugging missing or stale SCD values.
-  payor_one   <- collapse_scd(
-    payor
-  )
-  
-  # Diagnostic: housing_one shows which active housing status SCD row was
-  # selected for each enrollment. Useful for debugging missing or stale SCD
-  # values.
-  housing_one <- collapse_scd(
-    housing
-  )
-  
   # Diagnostic: client_needs_one shows which client needs SCD row was selected for
   # each enrollment. Useful for debugging missing or stale SCD values.
   client_needs_one  <- collapse_scd(
@@ -858,21 +640,6 @@ transform_ere_referral_flow <- function(
   
   # Start join sequence with joined "authoritative" pathclient
   joined <- pc |>
-    # Join SCD "active" summaries once per enrollment
-    dplyr::left_join(
-      payor_one,
-      by = c(
-        "client_number",
-        "tiedenrollment"
-      )
-    ) |>
-    dplyr::left_join(
-      housing_one,
-      by = c(
-        "client_number",
-        "tiedenrollment"
-      )
-    ) |>
     dplyr::left_join(
       client_needs_one,
       by = c(
@@ -923,13 +690,25 @@ transform_ere_referral_flow <- function(
         "client_number",
         "tiedenrollment"
       )
+    ) |> 
+    dplyr::left_join(
+      payor,
+      by = join_by(
+        "client_number",
+        "tiedenrollment"
+      )
+    ) |> 
+    dplyr::left_join(
+      housing,
+      by = join_by(
+        "client_number",
+        "tiedenrollment"
+      )
     )
   
   # Store the final joined referral flow table
   output <- list(
     scd = list(
-      payor_one   = payor_one,
-      housing_one = housing_one,
       client_needs_one = client_needs_one
     ),
     parent_map = parent_map,
@@ -987,8 +766,10 @@ run_ere_etl <- function(
     ere_bhs,
     ere_active_payor_source,
     ere_all_payor_source,
+    ere_initial_latest_payor_source,
     ere_active_housing,
     ere_all_housing,
+    ere_initial_latest_housing_status,
     ere_client_needs,
     start_date = NULL,
     end_date = NULL,
@@ -1004,66 +785,23 @@ run_ere_etl <- function(
   
   # 1. Raw ingestion
   ere_raw <- list(
-    ere_client = load_ere_client(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_provider_placement = load_ere_provider_placement(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_pathclient = load_ere_pathclient(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_pathway_docsernos = load_ere_pathway_docsernos(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_ref = load_ere_ref(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_ihna = load_ere_ihna(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_hosp_visit = load_ere_hosp_visit(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_three_month = load_ere_three_month(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_six_month = load_ere_six_month(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_bhs = load_ere_bhs(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_active_payor_source = load_ere_active_payor_source(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_all_payor_source = load_ere_all_payor_source(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_active_housing = load_ere_active_housing(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_all_housing = load_ere_all_housing(
-      ere_paths,
-      analytic_fields
-    ),
-    ere_client_needs = load_ere_client_needs(
-      ere_paths,
-      analytic_fields
-    )
+    ere_client = ere_client,
+    ere_provider_placement = ere_provider_placement,
+    ere_pathclient = ere_pathclient,
+    ere_pathway_docsernos = ere_pathway_docsernos,
+    ere_ref = ere_ref,
+    ere_ihna = ere_ihna,
+    ere_hosp_visit = ere_hosp_visit,
+    ere_three_month = ere_three_month,
+    ere_six_month = ere_six_month,
+    ere_bhs = ere_bhs,
+    ere_active_payor_source = ere_active_payor_source,
+    ere_all_payor_source = ere_all_payor_source,
+    ere_initial_latest_payor_source = ere_initial_latest_payor_source,
+    ere_active_housing = ere_active_housing,
+    ere_all_housing = ere_all_housing,
+    ere_initial_latest_housing_status = ere_initial_latest_housing_status,
+    ere_client_needs = ere_client_needs
   )
   
 # ===
