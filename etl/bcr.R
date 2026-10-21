@@ -1094,7 +1094,13 @@ transform_bcr_pathclient <- function(
         ),
       month_year_referral_abbrev = month_year_label_abbrev(
         enrollment_starting_date
-        )
+        ),
+      month_year_dismissed_full = month_year_label_full(
+        enrollment_ending_date
+      ),
+      month_year_dismissed_abbrev = month_year_label_abbrev(
+        enrollment_ending_date
+      )
     ) |>
     order_fiscal_year_labels(
       month_year_referral_full,
@@ -1105,7 +1111,18 @@ transform_bcr_pathclient <- function(
       month_year_referral_abbrev,
       enrollment_starting_date,
       "state"
-      )
+      ) |> 
+    order_fiscal_year_labels(
+      month_year_dismissed_full,
+      enrollment_ending_date,
+      "state"
+    ) |>
+    order_fiscal_year_labels(
+      month_year_dismissed_abbrev,
+      enrollment_ending_date,
+      "state"
+    )
+    
   
   # Merge client demographics
   enrollment <- enrollment |>
