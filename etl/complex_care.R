@@ -187,21 +187,21 @@ complex_care_paths <- list(
     "FAMCare COMPLEX CARE Extract/",
     "Q_COMPLEX_CARE_SHELTER_BEDS.csv"
   ),
-  complex_care_active_housing = make_path(
-    "FAMCare COMPLEX CARE Extract/",
-    "Q_COMPLEX_CARE_ACTIVE_HOUSING_STATUS.csv"
-  ),
   complex_care_all_housing = make_path(
     "FAMCare COMPLEX CARE Extract/",
     "Q_COMPLEX_CARE_ALL_HOUSING_STATUS.csv"
   ),
-  complex_care_active_payor_source = make_path(
+  complex_care_initial_latest_housing_status = make_path(
     "FAMCare COMPLEX CARE Extract/",
-    "Q_COMPLEX_CARE_ACTIVE_PAYOR_SOURCE.csv"
+    "Q_COMPLEX_CARE_BEACN_INITIAL_LATEST_HOUSING_STATUS.csv"
   ),
   complex_care_all_payor_source = make_path(
     "FAMCare COMPLEX CARE Extract/",
     "Q_COMPLEX_CARE_ALL_PAYOR_SOURCE.csv"
+  ),
+  complex_care_initial_latest_payor_source = make_path(
+    "FAMCare COMPLEX CARE Extract/",
+    "Q_COMPLEX_CARE_BEACN_INITIAL_LATEST_PAYOR_SOURCE.csv"
   ),
   complex_care_ext_mercy_utilization = make_latest_file_path(
     "Clinical BEACN Extract/",
@@ -234,237 +234,11 @@ complex_care_paths <- list(
 
 # ===
 # 2. Ingestion/Loading Functions ----
+#
+# Retain only custom loaders specific to this program and not defined in
+# helpers.R. Targets handles all loaders using load_famcare_extract().
+#
 # ===
-
-## ===
-## Ingest complex_care_client ----
-##   - one row per client
-## ===
-load_complex_care_client <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_client,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_provider_placement ----
-##   - one row per enrollment - available to supplement complex_care_pathclient 
-##       but not joined
-##   - Renames key fields
-## ===
-load_complex_care_provider_placement <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_provider_placement,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_pathclient ----
-##   - Renames key fields
-##   - Pivoting handled separately, so this is not one row per enrollment yet
-## ===
-load_complex_care_pathclient <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_pathclient,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_pathway_docsernos ----
-##   - one row per Pathway Event form
-## ===
-load_complex_care_pathway_docsernos <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_pathway_docsernos,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_roster ----
-##   - one row per roster for each enrollment
-## ===
-load_complex_care_roster <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_roster,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_clinical_notes ----
-##   - one row per note for each enrollment
-## ===
-load_complex_care_clinical_notes <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_clinical_notes,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_alerting_follow_up ----
-##   - more than one row per note for each enrollment
-## ===
-load_complex_care_alerting_follow_up <- function(
-    complex_care_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_alerting_follow_up,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_outreach_notes ----
-##   - more than one row per note for each enrollment
-## ===
-load_complex_care_outreach_notes <- function(
-    complex_care_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_outreach_notes,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_mercy_beacn_benchmarks ----
-##   - one row per metrics for each enrollment
-## ===
-load_complex_care_mercy_beacn_benchmarks <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_mercy_beacn_benchmarks,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_pfp_discharge ----
-##   - one row per presenting concerns for each enrollment
-## ===
-load_complex_care_pfp_discharge <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_pfp_discharge,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_quality_of_life ----
-##   - one row per event for each enrollment
-## ===
-load_complex_care_quality_of_life <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_quality_of_life,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_shelter_beds ----
-##   - multiple rows per client counseling session for each enrollment
-## ===
-load_complex_care_shelter_beds <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_shelter_beds,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_active_payor_source ----
-##   - one row per active payor source per enrollment
-##   - Renames key fields
-## ===
-load_complex_care_active_payor_source <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_active_payor_source,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_all_payor_source ----
-##   - long form with one row per payor source record per enrollment, which
-##       means that this duplicates on enrollments
-## ===
-load_complex_care_all_payor_source <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_all_payor_source,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_active_housing_status ----
-##   - one row per active housing status per enrollment
-## ===
-load_complex_care_active_housing <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_active_housing,
-    analytic_fields = analytic_fields
-  )
-}
-
-## ===
-## Ingest complex_care_all_housing_status ----
-##   - long form with one row per housing status record per enrollment, which
-##       means that this duplicates on enrollments
-## ===
-load_complex_care_all_housing <- function(
-  complex_care_paths,
-  analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_all_housing,
-    analytic_fields = analytic_fields
-  )
-}
 
 ## ===
 ## Ingest complex_care_ext_mercy_utilization ----
@@ -494,20 +268,6 @@ load_complex_care_ext_atd_notifications <- function(
       .x,
       analytic_fields
     )
-  )
-}
-
-## ===
-## Ingest complex_care_ext_pfp_service_history ----
-##   - multiple rows per mrn
-## ===
-load_complex_care_ext_pfp_service_history <- function(
-    complex_care_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_ext_pfp_service_history,
-    analytic_fields = analytic_fields
   )
 }
 
@@ -558,23 +318,9 @@ load_complex_care_ext_pcc_facility_lut <- function(
 load_complex_care_ext_eto_roster <- function(
     path,
     analytic_fields
-    ) {
+) {
   load_ext_eto_extract(
     path = path,
-    analytic_fields = analytic_fields
-    )
-}
-
-## ===
-## Ingest complex_care_ext_stlco_arrest_data ----
-##   - multiple rows per patient name
-## ===
-load_complex_care_ext_stlco_arrest_data <- function(
-    complex_care_paths,
-    analytic_fields
-) {
-  load_famcare_extract(
-    path = complex_care_paths$complex_care_ext_stlco_arrest_data,
     analytic_fields = analytic_fields
   )
 }
@@ -598,7 +344,8 @@ load_complex_care_ext_stlco_arrest_data <- function(
 #
 # 2. transform_complex_care_referral_flow()
 #        - joins Pathway Event forms (roster, benchmarks, pfp_discharge)
-#        - joins SCD tables (presenting concerns, active payor, active housing)
+#        - joins initial/lastest SCD tables (payor, housing)
+#        - joins SCD tables (presenting concerns)
 #
 # 5. build_complex_care_full_data()
 #        - returns joined_referral_flow as a unified dataset
@@ -1156,11 +903,11 @@ transform_complex_care_ext_mercy_utilization <- function(
 
 # ===
 ## 3c. Transform Referral Flow ----
-#   - Joins REF, IC, RP
+#   - Joins event tables and initial/latest payor|housing status
 #   - Prefixes all columns except tiedenrollment
-#   - Joins SCD summation tables (presconcerns, payor, housing) to ALL parent
+#   - Joins "active" SCD summation tables (presconcerns) to ALL parent
 #       forms
-#   - Collapses SCD summation tables to one active row per enrollment
+#   - Collapses presconcerns SCD summation table to one active row per enrollment
 # ===
 transform_complex_care_referral_flow <- function(
     complex_care,
@@ -1223,28 +970,6 @@ transform_complex_care_referral_flow <- function(
   ### ===
   ### 2. Clean each active SCD summation tables ----
   ### ===
-
-  payor <- clean_form(
-    complex_care$complex_care_active_payor_source,
-    "payor_"
-  ) |>
-    dplyr::rename(
-      parent_docserno = payor_parent_docserno
-    ) |>
-    dplyr::select(
-      -client_number
-    )
-
-  housing <- clean_form(
-    complex_care$complex_care_active_housing,
-    "housing_"
-  ) |>
-    dplyr::rename(
-      parent_docserno = housing_parent_docserno
-    ) |>
-    dplyr::select(
-      -client_number
-    )
 
   qol <- clean_form(
     complex_care$complex_care_quality_of_life,
@@ -1330,6 +1055,26 @@ transform_complex_care_referral_flow <- function(
       )
     )
   
+  payor <- clean_form(
+    complex_care$complex_care_initial_latest_payor_source,
+    "payor_"
+  ) |> 
+    dplyr::select(
+      -tidyselect::ends_with(
+        "docserno"
+      )
+    )
+  
+  housing <- clean_form(
+    complex_care$complex_care_initial_latest_housing_status,
+    "housing_"
+  ) |> 
+    dplyr::select(
+      -tidyselect::ends_with(
+        "docserno"
+      )
+    )
+  
   ### ===
   ### 4. Start with pivoted pathclient ----
   ### ===
@@ -1405,19 +1150,6 @@ transform_complex_care_referral_flow <- function(
   ### 7. Apply collapse_scd() to relevant tables ----
   ### ===
   
-  # Diagnostic: payor_one shows which active payor source SCD row was selected
-  # for each enrollment. Useful for debugging missing or stale SCD values.
-  payor_one   <- collapse_scd(
-    payor
-  )
-
-  # Diagnostic: housing_one shows which active housing status SCD row was
-  # selected for each enrollment. Useful for debugging missing or stale SCD
-  # values.
-  housing_one <- collapse_scd(
-    housing
-  )
-
   # # Diagnostic: intake_one shows which committee notes SCD row was selected for
   # # each enrollment. Useful for debugging missing or stale SCD values.
   # ccnotes_one  <- collapse_scd(
@@ -1440,21 +1172,6 @@ transform_complex_care_referral_flow <- function(
   ### 8. Start join sequence with joined "authoritative" pathclient ----
   ### ===
   joined <- pc |>
-    # Join SCD "active" summaries once per enrollment
-    dplyr::left_join(
-      payor_one,
-      by = c(
-        "client_number",
-        "tiedenrollment"
-      )
-    ) |>
-    dplyr::left_join(
-      housing_one,
-      by = c(
-        "client_number",
-        "tiedenrollment"
-      )
-    ) |>
 
     # Join SCD "shelter bed" once per enrollment
     dplyr::left_join(
@@ -1499,6 +1216,20 @@ transform_complex_care_referral_flow <- function(
     dplyr::left_join(
       ccnotes,
       by = dplyr::join_by(
+        "client_number",
+        "tiedenrollment"
+      )
+    ) |> 
+    dplyr::left_join(
+      payor,
+      by = join_by(
+        "client_number",
+        "tiedenrollment"
+      )
+    ) |> 
+    dplyr::left_join(
+      housing,
+      by = join_by(
         "client_number",
         "tiedenrollment"
       )
@@ -2028,16 +1759,16 @@ transform_complex_care_referral_flow <- function(
   output <- list(
     scd = list(
       shelter_beds_one = shelter_beds_one,
-      qol_one = qol_one,
-      payor_one   = payor_one,
-      housing_one = housing_one
+      qol_one = qol_one
     ),
     parent_map = parent_map,
     transformed = list(
       roster = roster,
       ccnotes = ccnotes,
       benchmarks = benchmarks,
-      pfp_discharge = pfp_discharge
+      pfp_discharge = pfp_discharge,
+      payor = payor,
+      housing = housing
     ),
     joined_referral_flow = joined,
     
@@ -2256,10 +1987,10 @@ run_complex_care_etl <- function(
   complex_care_pfp_discharge,
   complex_care_quality_of_life,
   complex_care_shelter_beds,
-  complex_care_active_payor_source,
   complex_care_all_payor_source,
-  complex_care_active_housing,
+  complex_care_initial_latest_payor_source,
   complex_care_all_housing,
+  complex_care_initial_latest_housing_status,
   complex_care_ext_mercy_utilization_raw,
   complex_care_ext_mercy_utilization_transformed,
   complex_care_ext_atd_notifications,
@@ -2308,10 +2039,12 @@ run_complex_care_etl <- function(
     complex_care_clinical_notes = complex_care_clinical_notes,
     complex_care_alerting_follow_up = complex_care_alerting_follow_up,
     complex_care_outreach_notes = complex_care_outreach_notes,
-    complex_care_active_payor_source = complex_care_active_payor_source,
     complex_care_all_payor_source = complex_care_all_payor_source,
-    complex_care_active_housing = complex_care_active_housing,
+    complex_care_initial_latest_payor_source = 
+      complex_care_initial_latest_payor_source,
     complex_care_all_housing = complex_care_all_housing,
+    complex_care_initial_latest_housing_status = 
+      complex_care_initial_latest_housing_status,
     # Both raw and transformed Mercy utilization are included here
     # intentionally. complex_care_raw is a *staging list* passed to downstream
     # transforms. transform_complex_care_referral_flow() selects the transformed
