@@ -15,8 +15,9 @@
 #       joined to PathClient by TIEDENROLLMENT
 #   - SCD summation tables (payor, housing, client_needs) are joined by
 #       PARENT_DOCSERNO to all possible parent forms (REF/IHNA/follow-ups)
-#   - Active SCD summation tables are joined into ere_full_data (one row per
-#       enrollment); “all” SCD summation tables remain long form for reporting
+#   - Initial/latest SCD summation tables are joined into ere_full_data (one row
+#       per enrollment); “all” SCD summation tables remain long form for
+#       reporting
 #   - All form columns are prefixed with form name (ref_, hosp_visit_, ihna_,
 #       threem_, sixm_, bhs_, payor_, housing_, client_needs_)
 #
@@ -101,7 +102,7 @@
 #   * Referral
 #   * IHNA
 #   * Follow-ups (three-month, six-month)
-#   * Housing and Payor Source (active/all)
+#   * Housing and Payor Source (initial and latest/all)
 #   * Client Needs
 #
 # The transformation layer reconstructs this program life cycle for each
@@ -172,10 +173,6 @@ ere_paths <- list(
   "FAMCare ERE Extract/",
   "Q_ERE_BHS.csv"
  ),
- ere_active_housing = make_path(
-  "FAMCare ERE Extract/",
-  "Q_ERE_ACTIVE_HOUSING_STATUS.csv"
- ),
  ere_all_housing = make_path(
   "FAMCare ERE Extract/",
   "Q_ERE_ALL_HOUSING_STATUS.csv"
@@ -183,10 +180,6 @@ ere_paths <- list(
  ere_initial_latest_housing_status = make_path(
    "FAMCare ERE Extract/",
    "Q_ERE_INITIAL_LATEST_HOUSING_STATUS.csv"
- ),
- ere_active_payor_source = make_path(
-  "FAMCare ERE Extract/",
-  "Q_ERE_ACTIVE_PAYOR_SOURCE.csv"
  ),
  ere_all_payor_source = make_path(
   "FAMCare ERE Extract/",
@@ -230,7 +223,8 @@ ere_paths <- list(
 #
 #   2. transform_ere_referral_flow()
 #        - joins Pathway Event forms (ref, ihna, hosp_visit, etc.)
-#        - joins SCD tables (active payor, active housing, client needs)
+#        - joins initial/latest SCD tables (payor, housing)
+#        - joins active SCD table (client needs)
 #
 #   5. build_ere_full_data()
 #        - returns joined_referral_flow as a unified dataset
@@ -766,10 +760,8 @@ run_ere_etl <- function(
     ere_three_month,
     ere_six_month,
     ere_bhs,
-    ere_active_payor_source,
     ere_all_payor_source,
     ere_initial_latest_payor_source,
-    ere_active_housing,
     ere_all_housing,
     ere_initial_latest_housing_status,
     ere_client_needs,
@@ -797,10 +789,8 @@ run_ere_etl <- function(
     ere_three_month = ere_three_month,
     ere_six_month = ere_six_month,
     ere_bhs = ere_bhs,
-    ere_active_payor_source = ere_active_payor_source,
     ere_all_payor_source = ere_all_payor_source,
     ere_initial_latest_payor_source = ere_initial_latest_payor_source,
-    ere_active_housing = ere_active_housing,
     ere_all_housing = ere_all_housing,
     ere_initial_latest_housing_status = ere_initial_latest_housing_status,
     ere_client_needs = ere_client_needs
