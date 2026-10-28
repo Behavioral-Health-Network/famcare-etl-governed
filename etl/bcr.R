@@ -729,21 +729,21 @@ bcr_paths <- list(
     "FAMCare BCR Extract/",
     "Q_BCR_CLIENT_COUNSELING_SESSIONS.csv"
   ),
-  bcr_active_payor_source = make_path(
-    "FAMCare BCR Extract/",
-    "Q_BCR_ACTIVE_PAYOR_SOURCE.csv"
-  ),
   bcr_all_payor_source = make_path(
     "FAMCare BCR Extract/",
     "Q_BCR_ALL_PAYOR_SOURCE.csv"
   ),
-  bcr_active_housing = make_path(
+  bcr_initial_latest_payor_source = make_path(
     "FAMCare BCR Extract/",
-    "Q_BCR_ACTIVE_HOUSING_STATUS.csv"
+    "Q_BCR_INITIAL_LATEST_PAYOR_SOURCE.csv"
   ),
   bcr_all_housing = make_path(
     "FAMCare BCR Extract/",
     "Q_BCR_ALL_HOUSING_STATUS.csv"
+  ),
+  bcr_initial_latest_housing_status = make_path(
+    "FAMCare BCR Extract/",
+    "Q_BCR_INITIAL_LATEST_HOUSING_STATUS.csv"
   ),
   bcr_ext_caregiver_survey = make_all_file_paths(
     "EXT BCR Caregiver Survey",
@@ -751,216 +751,17 @@ bcr_paths <- list(
   )
 )
 
-# ===
-# 2. Ingestion/Loading Functions ----
-# ===
+# === 2. Ingestion/Loading Functions ----
+#
+# Retain only custom loaders specific to this program. Targets handles all other
+# loaders.
+# 
+#  ===
 
-# ===
-# Ingest bcr_client ----
-#   - one row per client
-# ===
-load_bcr_client <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_client,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_provider_placement ----
-#   - one row per enrollment - available to supplement bcr_pathclient but not
-#       joined
-#   - Renames key fields
-# ===
-load_bcr_provider_placement <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_provider_placement,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_pathclient ----
-#   - Renames key fields
-#   - Pivoting handled separately, so this is not one row per enrollment yet
-# ===
-load_bcr_pathclient <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_pathclient,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_pathway_docsernos ----
-#   - one row per Pathway Event form
-# ===
-load_bcr_pathway_docsernos <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_pathway_docsernos,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_referral ----
-#   - one row per referral for each enrollment
-# ===
-load_bcr_ref <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_ref,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_initial_contact ----
-#   - one row per initial contact for each enrollment
-# ===
-load_bcr_ic <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_ic,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_referrals_placed ----
-#   - one row per referrals placed for each enrollment
-# ===
-load_bcr_referrals_placed <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_referrals_placed,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_presenting_concerns ----
-#   - one row per presenting concerns for each enrollment
-# ===
-load_bcr_presenting_concerns <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_presenting_concerns,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_events ----
-#   - one row per event for each enrollment
-# ===
-load_bcr_events <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_events,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_client_counseling_sessions ----
-#   - multiple rows per client counseling session for each enrollment
-# ===
-load_bcr_client_counseling_sessions <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_client_counseling_sessions,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_active_payor_source ----
-#   - one row per active payor source per enrollment
-#   - Renames key fields
-# ===
-load_bcr_active_payor_source <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_active_payor_source,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_all_payor_source ----
-#   - long form with one row per payor source record per enrollment, which
-#       means that this duplicates on enrollments
-# ===
-load_bcr_all_payor_source <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_all_payor_source,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_active_housing_status ----
-#   - one row per active housing status per enrollment
-# ===
-load_bcr_active_housing <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_active_housing,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_all_housing_status ----
-#   - long form with one row per housing status record per enrollment, which
-#       means that this duplicates on enrollments
-# ===
-load_bcr_all_housing <- function(
-  bcr_paths,
-  analytic_fields
-  ) {
-  load_famcare_extract(
-    path = bcr_paths$bcr_all_housing,
-    analytic_fields = analytic_fields
-  )
-}
-
-# ===
-# Ingest bcr_ext_caregiver_survey ----
-#   - multiple rows per caregiver
-# ===
+## ===
+## Ingest bcr_ext_caregiver_survey ----
+##   - multiple rows per caregiver
+## ===
 load_bcr_ext_caregiver_survey <- function(
     bcr_paths,
     analytic_fields
@@ -1170,7 +971,7 @@ transform_bcr_pathclient <- function(
     tidyr::pivot_wider(
       names_from = event_key,
       values_from = pwy_forms_docserno,
-      values_fn = ~ first(
+      values_fn = ~ dplyr::first(
         na.omit(
         .x
         )
@@ -1301,29 +1102,6 @@ transform_bcr_referral_flow <- function(
   
   # --- SCD tables ---
   # Clean and prefix SCD tables; remove join keys so they can be collapsed
-  payor <- clean_form(
-    bcr$bcr_active_payor_source,
-    "payor_"
-    ) |>
-    dplyr::rename(
-      parent_docserno = payor_parent_docserno
-      ) |>
-    dplyr::select(
-      -client_number,
-      -tiedenrollment
-      )
-  
-  housing <- clean_form(
-    bcr$bcr_active_housing,
-    "housing_"
-    ) |>
-    dplyr::rename(
-      parent_docserno = housing_parent_docserno
-      ) |>
-    dplyr::select(
-      -client_number
-      )
-  
   presconcerns <- clean_form(
     bcr$bcr_presenting_concerns,
     "pc_"
@@ -1422,6 +1200,26 @@ transform_bcr_referral_flow <- function(
       )
     )
   
+  payor <- clean_form(
+    bcr$bcr_initial_latest_payor_source,
+    "payor_"
+  ) |> 
+    dplyr::select(
+      -tidyselect::ends_with(
+        "docserno"
+      )
+    )
+  
+  housing <- clean_form(
+    bcr$bcr_initial_latest_housing_status,
+    "housing_"
+  ) |> 
+    dplyr::select(
+      -tidyselect::ends_with(
+        "docserno"
+      )
+    )
+  
   # --- Parent map ---
   # Maps each event form (REF, IC, RP) to its parent_docserno for SCD collapsing
   pc <- bcr$pathclient
@@ -1479,32 +1277,12 @@ transform_bcr_referral_flow <- function(
       )
   }
   
-  payor_one <- collapse_scd(
-    payor
-    )
-  housing_one <- collapse_scd(
-    housing
-    )
   presconcerns_one <- collapse_scd(
     presconcerns
     )
   
   # --- Join everything into wide referral_flow ---
   joined <- pc |>
-    dplyr::left_join(
-      payor_one,
-      by = c(
-        "client_number",
-        "tiedenrollment"
-        )
-      ) |>
-    dplyr::left_join(
-      housing_one,
-      by = c(
-        "client_number",
-        "tiedenrollment"
-        )
-      ) |>
     dplyr::left_join(
       presconcerns_one,
       by = c(
@@ -1532,7 +1310,21 @@ transform_bcr_referral_flow <- function(
         "client_number",
         "tiedenrollment"
         )
+      ) |> 
+    dplyr::left_join(
+      payor,
+      by = join_by(
+        "client_number",
+        "tiedenrollment"
       )
+    ) |> 
+    dplyr::left_join(
+      housing,
+      by = join_by(
+        "client_number",
+        "tiedenrollment"
+      )
+    )
   
     # CCS intentionally NOT joined; remains long-form
     
@@ -1666,9 +1458,7 @@ transform_bcr_referral_flow <- function(
   # --- Output bundle ---
   output <- list(
     scd = list(
-      presconcerns_one  = presconcerns_one,
-      payor_one = payor_one,
-      housing_one = housing_one
+      presconcerns_one  = presconcerns_one
     ),
     parent_map = parent_map,
     transformed = list(
@@ -1678,7 +1468,9 @@ transform_bcr_referral_flow <- function(
       type_map = type_map,
       subtype_map = subtype_map,
       rp_long = rp_long,
-      ccs = ccs
+      ccs = ccs,
+      payor = payor,
+      housing = housing
     ),
     joined_referral_flow = joined,
     ext_caregiver_survey = ext_caregiver_survey
@@ -1721,10 +1513,10 @@ run_bcr_etl <- function(
     bcr_presenting_concerns,
     bcr_events,
     bcr_client_counseling_sessions,
-    bcr_active_payor_source,
     bcr_all_payor_source,
-    bcr_active_housing,
+    bcr_initial_latest_payor_source,
     bcr_all_housing,
+    bcr_initial_latest_housing_status,
     bcr_referral_type_map,
     bcr_referral_subtype_map,
     bcr_ext_caregiver_survey,
@@ -1753,10 +1545,10 @@ run_bcr_etl <- function(
     bcr_presenting_concerns = bcr_presenting_concerns,
     bcr_events = bcr_events,
     bcr_client_counseling_sessions = bcr_client_counseling_sessions,
-    bcr_active_payor_source = bcr_active_payor_source,
     bcr_all_payor_source = bcr_all_payor_source,
-    bcr_active_housing = bcr_active_housing,
+    bcr_initial_latest_payor_source = bcr_initial_latest_payor_source,
     bcr_all_housing = bcr_all_housing,
+    bcr_initial_latest_housing_status = bcr_initial_latest_housing_status,
     bcr_ext_caregiver_survey = bcr_ext_caregiver_survey
   )
   
