@@ -26,6 +26,7 @@ library(janitor)
 library(sf)
 library(tigris)
 library(targets)
+library(khroma)
 
 # ===
 # 2. Global options ----
