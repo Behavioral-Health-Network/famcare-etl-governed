@@ -433,10 +433,10 @@ list(
  ),
  
  targets::tar_target(
-   bcr_active_payor_source_file,
+   bcr_initial_latest_payor_source_file,
    {
      vpn_check
-     bcr_paths$bcr_active_payor_source
+     bcr_paths$bcr_initial_latest_payor_source
    },
    format = "file"
  ),
@@ -451,10 +451,10 @@ list(
  ),
  
  targets::tar_target(
-   bcr_active_housing_file,
+   bcr_initial_latest_housing_status_file,
    {
      vpn_check
-     bcr_paths$bcr_active_housing
+     bcr_paths$bcr_initial_latest_housing_status
    },
    format = "file"
  ),
@@ -587,15 +587,6 @@ list(
   },
   format = "file"
  ),
-
- targets::tar_target(
-  complex_care_active_payor_source_file,
-  {
-    vpn_check
-    complex_care_paths$complex_care_active_payor_source
-  },
-  format = "file"
- ),
  
  targets::tar_target(
   complex_care_all_payor_source_file,
@@ -607,12 +598,12 @@ list(
  ),
  
  targets::tar_target(
-  complex_care_active_housing_file,
-  {
-    vpn_check
-    complex_care_paths$complex_care_active_housing
-  },
-  format = "file"
+   complex_care_initial_latest_payor_source_file,
+   {
+     vpn_check
+     complex_care_paths$complex_care_initial_latest_payor_source
+   },
+   format = "file"
  ),
  
  targets::tar_target(
@@ -624,6 +615,15 @@ list(
   format = "file"
  ),
 
+ targets::tar_target(
+   complex_care_initial_latest_housing_status_file,
+   {
+     vpn_check
+     complex_care_paths$complex_care_initial_latest_housing_status
+   },
+   format = "file"
+ ),
+ 
  targets::tar_target(
   complex_care_ext_mercy_utilization_file,
   {
@@ -789,28 +789,10 @@ targets::tar_target(
  ),
  
  targets::tar_target(
-  epicc_active_intake_file,
-  {
-    vpn_check
-    epicc_paths$epicc_active_intake
-  },
-  format = "file"
- ),
- 
- targets::tar_target(
   epicc_all_intake_file,
   {
     vpn_check
     epicc_paths$epicc_all_intake
-  },
-  format = "file"
- ),
- 
- targets::tar_target(
-  epicc_active_payor_source_file,
-  {
-    vpn_check
-    epicc_paths$epicc_active_payor_source
   },
   format = "file"
  ),
@@ -824,15 +806,15 @@ targets::tar_target(
   format = "file"
  ),
  
- targets::tar_target(
-  epicc_active_housing_file,
+targets::tar_target(
+  epicc_initial_latest_payor_source_file,
   {
     vpn_check
-    epicc_paths$epicc_active_housing
+    epicc_paths$epicc_initial_latest_payor_source
   },
   format = "file"
- ),
- 
+),
+
  targets::tar_target(
   epicc_all_housing_file,
   {
@@ -842,6 +824,15 @@ targets::tar_target(
   format = "file"
  ),
  
+targets::tar_target(
+  epicc_initial_latest_housing_status_file,
+  {
+    vpn_check
+    epicc_paths$epicc_initial_latest_housing_status
+  },
+  format = "file"
+),
+
  targets::tar_target(
   epicc_case_notes_file,
   {
@@ -953,15 +944,6 @@ targets::tar_target(
  ),
  
  targets::tar_target(
-  ere_active_payor_source_file,
-  {
-    vpn_check
-    ere_paths$ere_active_payor_source
-  },
-  format = "file"
- ),
- 
- targets::tar_target(
   ere_all_payor_source_file,
   {
     vpn_check
@@ -979,15 +961,6 @@ targets::tar_target(
   format = "file"
 ),
 
- targets::tar_target(
-  ere_active_housing_file,
-  {
-    vpn_check
-    ere_paths$ere_active_housing
-  },
-  format = "file"
- ),
- 
  targets::tar_target(
   ere_all_housing_file,
   {
@@ -1293,14 +1266,6 @@ targets::tar_target(
  ),
  
  targets::tar_target(
-   bcr_active_payor_source_raw,
-   load_famcare_extract(
-     path = bcr_active_payor_source_file,
-     analytic_fields = analytic_fields
-   )
- ),
- 
- targets::tar_target(
    bcr_all_payor_source_raw,
    load_famcare_extract(
      path = bcr_all_payor_source_file,
@@ -1308,13 +1273,13 @@ targets::tar_target(
    )
  ),
  
- targets::tar_target(
-   bcr_active_housing_raw,
-   load_famcare_extract(
-     path = bcr_active_housing_file,
-     analytic_fields = analytic_fields
-   )
- ),
+targets::tar_target(
+  bcr_initial_latest_payor_source_raw,
+  load_famcare_extract(
+    path = bcr_initial_latest_payor_source_file,
+    analytic_fields = analytic_fields
+  )
+),
  
  targets::tar_target(
    bcr_all_housing_raw,
@@ -1323,6 +1288,14 @@ targets::tar_target(
      analytic_fields = analytic_fields
    )
  ),
+
+targets::tar_target(
+  bcr_initial_latest_housing_status_raw,
+  load_famcare_extract(
+    path = bcr_initial_latest_housing_status_file,
+    analytic_fields = analytic_fields
+  )
+),
 
 targets::tar_target(
   bcr_ext_caregiver_survey_raw,
@@ -1429,14 +1402,6 @@ targets::tar_target(
    analytic_fields = analytic_fields
   )
  ),
-
- targets::tar_target(
-  complex_care_active_payor_source_raw,
-  load_famcare_extract(
-   path = complex_care_active_payor_source_file,
-   analytic_fields = analytic_fields
-  )
- ),
  
  targets::tar_target(
   complex_care_all_payor_source_raw,
@@ -1446,13 +1411,13 @@ targets::tar_target(
   )
  ),
  
- targets::tar_target(
-  complex_care_active_housing_raw,
+targets::tar_target(
+  complex_care_initial_latest_payor_source_raw,
   load_famcare_extract(
-   path = complex_care_active_housing_file,
-   analytic_fields = analytic_fields
+    path = complex_care_initial_latest_payor_source_file,
+    analytic_fields = analytic_fields
   )
- ),
+),
  
  targets::tar_target(
   complex_care_all_housing_raw,
@@ -1461,6 +1426,14 @@ targets::tar_target(
    analytic_fields = analytic_fields
   )
  ),
+
+targets::tar_target(
+  complex_care_initial_latest_housing_status_raw,
+  load_famcare_extract(
+    path = complex_care_initial_latest_housing_status_file,
+    analytic_fields = analytic_fields
+  )
+),
 
 # supplies the entire complex_care_paths because path isn't an argument in
 # load_complex_care_ext_mercy_utilization.
@@ -1626,25 +1599,9 @@ targets::tar_target(
  ),
  
  targets::tar_target(
-  epicc_active_intake_raw,
-  load_famcare_extract(
-   path = epicc_active_intake_file,
-   analytic_fields = analytic_fields
-  )
- ),
- 
- targets::tar_target(
   epicc_all_intake_raw,
   load_famcare_extract(
    path = epicc_all_intake_file,
-   analytic_fields = analytic_fields
-  )
- ),
- 
- targets::tar_target(
-  epicc_active_payor_source_raw,
-  load_famcare_extract(
-   path = epicc_active_payor_source_file,
    analytic_fields = analytic_fields
   )
  ),
@@ -1657,14 +1614,14 @@ targets::tar_target(
   )
  ),
  
- targets::tar_target(
-  epicc_active_housing_raw,
+targets::tar_target(
+  epicc_initial_latest_payor_source_raw,
   load_famcare_extract(
-   path = epicc_active_housing_file,
-   analytic_fields = analytic_fields
+    path = epicc_initial_latest_payor_source_file,
+    analytic_fields = analytic_fields
   )
- ),
- 
+),
+
  targets::tar_target(
   epicc_all_housing_raw,
   load_famcare_extract(
@@ -1673,6 +1630,14 @@ targets::tar_target(
   )
  ),
  
+targets::tar_target(
+  epicc_initial_latest_housing_status_raw,
+  load_famcare_extract(
+    path = epicc_initial_latest_housing_status_file,
+    analytic_fields = analytic_fields
+  )
+),
+
  targets::tar_target(
   epicc_case_notes_raw,
   load_famcare_extract(
@@ -1772,14 +1737,6 @@ targets::tar_target(
  ),
  
  targets::tar_target(
-  ere_active_payor_source_raw,
-  load_famcare_extract(
-   path = ere_active_payor_source_file,
-   analytic_fields = analytic_fields
-  )
- ),
- 
- targets::tar_target(
   ere_all_payor_source_raw,
   load_famcare_extract(
    path = ere_all_payor_source_file,
@@ -1795,14 +1752,6 @@ targets::tar_target(
   )
 ),
 
- targets::tar_target(
-  ere_active_housing_raw,
-  load_famcare_extract(
-   path = ere_active_housing_file,
-   analytic_fields = analytic_fields
-  )
- ),
- 
  targets::tar_target(
   ere_all_housing_raw,
   load_famcare_extract(
@@ -2196,10 +2145,10 @@ targets::tar_target(
      bcr_presenting_concerns = bcr_presenting_concerns_raw,
      bcr_events = bcr_events_raw,
      bcr_client_counseling_sessions = bcr_client_counseling_sessions_raw,
-     bcr_active_payor_source = bcr_active_payor_source_raw,
      bcr_all_payor_source = bcr_all_payor_source_raw,
-     bcr_active_housing = bcr_active_housing_raw,
+     bcr_initial_latest_payor_source = bcr_initial_latest_payor_source_raw,
      bcr_all_housing = bcr_all_housing_raw,
+     bcr_initial_latest_housing_status = bcr_initial_latest_housing_status_raw,
      bcr_referral_type_map = bcr_referral_type_map,
      bcr_referral_subtype_map = bcr_referral_subtype_map,
      bcr_ext_caregiver_survey = bcr_ext_caregiver_survey_raw,
@@ -2226,10 +2175,12 @@ targets::tar_target(
     complex_care_pfp_discharge = complex_care_pfp_discharge_raw,
     complex_care_quality_of_life = complex_care_quality_of_life_raw,
     complex_care_shelter_beds = complex_care_shelter_beds_raw,
-    complex_care_active_payor_source = complex_care_active_payor_source_raw,
     complex_care_all_payor_source = complex_care_all_payor_source_raw,
-    complex_care_active_housing = complex_care_active_housing_raw,
+    complex_care_initial_latest_payor_source = 
+      complex_care_initial_latest_payor_source_raw,
     complex_care_all_housing = complex_care_all_housing_raw,
+    complex_care_initial_latest_housing_status = 
+      complex_care_initial_latest_housing_status_raw,
     complex_care_ext_mercy_utilization =
       complex_care_ext_mercy_utilization_raw,
     complex_care_ext_mercy_utilization_transformed =
@@ -2265,12 +2216,11 @@ targets::tar_target(
    epicc_three_month = epicc_three_month_raw,
    epicc_six_month = epicc_six_month_raw,
    epicc_reengagement = epicc_reengagement_raw,
-   epicc_active_intake = epicc_active_intake_raw,
    epicc_all_intake = epicc_all_intake_raw,
-   epicc_active_payor_source = epicc_active_payor_source_raw,
    epicc_all_payor_source = epicc_all_payor_source_raw,
-   epicc_active_housing = epicc_active_housing_raw,
+   epicc_initial_latest_payor_source = epicc_initial_latest_payor_source_raw,
    epicc_all_housing = epicc_all_housing_raw,
+   epicc_initial_latest_housing_status = epicc_initial_latest_housing_status_raw,
    epicc_case_notes = epicc_case_notes_raw,
    epicc_support_services_tracker = epicc_support_services_tracker_raw
   )
@@ -2292,10 +2242,8 @@ targets::tar_target(
    ere_three_month = ere_three_month_raw,
    ere_six_month = ere_six_month_raw,
    ere_bhs = ere_bhs_raw,
-   ere_active_payor_source = ere_active_payor_source_raw,
    ere_all_payor_source = ere_all_payor_source_raw,
    ere_initial_latest_payor_source = ere_initial_latest_payor_source_raw,
-   ere_active_housing = ere_active_housing_raw,
    ere_all_housing = ere_all_housing_raw,
    ere_initial_latest_housing_status = ere_initial_latest_housing_status_raw,
    ere_client_needs = ere_client_needs_raw
