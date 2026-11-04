@@ -1753,7 +1753,22 @@ transform_complex_care_referral_flow <- function(
     )
   
   ### ===
-  ### 24. Store the final joined referral flow table and return it. ----
+  ### 24. Add columns to complex_care_alerting_follow_up ----
+  ### ===
+  
+  alerting_follow_up <- complex_care$complex_care_alerting_follow_up |>
+    dplyr::mutate(
+      # ISO week and year (for joining)
+      meeting_date_iso_week = lubridate::isoweek(
+        meeting_date
+      ),
+      meeting_date_iso_year = lubridate::isoyear(
+        meeting_date
+      )
+    )
+  
+  ### ===
+  ### 25. Store the final joined referral flow table and return it. ----
   ### ===
 
   output <- list(
@@ -1773,7 +1788,7 @@ transform_complex_care_referral_flow <- function(
     joined_referral_flow = joined,
     
     complex_care_alerting_follow_up =
-      complex_care$complex_care_alerting_follow_up,
+      alerting_follow_up,
     complex_care_outreach_notes =
       outreach_notes,
     ext_mercy_utilization = 
