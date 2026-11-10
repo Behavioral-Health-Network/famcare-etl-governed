@@ -1455,8 +1455,8 @@ targets::tar_target(
  
 targets::tar_target(
   complex_care_ext_pfp_service_history_raw,
-  load_famcare_extract(
-    path = complex_care_ext_pfp_service_history_file,
+  load_complex_care_ext_pfp_service_history(
+    paths = complex_care_ext_pfp_service_history_file,
     analytic_fields = analytic_fields
   )
 ),
