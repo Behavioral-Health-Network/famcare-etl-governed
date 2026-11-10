@@ -326,6 +326,23 @@ load_complex_care_ext_eto_roster <- function(
 }
 
 # ===
+# Ingest complex_care_ext_pfp_service_history ----
+#   - multiple extract files are loaded individually and row-bound
+# ===
+load_complex_care_ext_pfp_service_history <- function(
+    paths,
+    analytic_fields
+) {
+  purrr::map_dfr(
+    paths,
+    ~ load_famcare_extract(
+      path = .x,
+      analytic_fields = analytic_fields
+    )
+  )
+}
+
+# ===
 # 3. Transformation Layer Overview ----
 #
 # The transformation layer converts raw Complex Care extracts (loaded via metadata-driven
