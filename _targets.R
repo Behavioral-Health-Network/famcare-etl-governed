@@ -2365,10 +2365,10 @@ targets::tar_target(
   complex_care_alert_watchlist_server_csv,
   {
     out_path <- paste0(
-      "P:/DATA/Data Files/Collective Medical Uploads/BHN_CM_Watchlist_",
+      "P:/DATA/Data Files/Collective Medical Uploads/BHN-CM-Watchlist-",
       format(
         Sys.Date(),
-        "%Y%m%d"
+        "%Y-%m-%d"
         ),
       ".csv"
     )
@@ -2392,11 +2392,11 @@ targets::tar_target(
       "C:/Users/",
       Sys.info()[7],
       "/Behavioral Health Network of Greater St. Louis/",
-      "BHN - Documents/Complex Care/Data & Evaluation/PHI/HIDI Analysis/",
-      "BHN_CM_Watchlist_",
+      "BHN - Documents/Complex Care/Mercy BEACN/Data & Evaluation/PHI/PCC Watchlist/",
+      "BHN-CM-Watchlist-",
       format(
         Sys.Date(),
-        "%Y%m%d"
+        "%Y-%m-%d"
         ),
       ".csv"
     )
