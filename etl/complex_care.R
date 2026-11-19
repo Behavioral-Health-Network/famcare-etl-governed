@@ -219,6 +219,10 @@ complex_care_paths <- list(
     "EXT PFP Metrics",
     pattern = "ext_pfp_metrics_legacy_\\d{8}\\.csv$"
   ),
+  complex_care_ext_pfp_housing_legacy = make_latest_file_path(
+    "EXT PFP Housing",
+    pattern = "ext_pfp_housing_legacy_\\d{8}\\.csv$"
+  ),
   complex_care_ext_pcc_facility_lut = make_lut_path(
     "pcc_notifications_visit_facilities_lut.xlsx"
   ),
@@ -275,6 +279,19 @@ load_complex_care_ext_atd_notifications <- function(
 ## Ingest complex_care_ext_pfp_metrics_legacy ----
 ## ===
 load_complex_care_ext_pfp_metrics_legacy <- function(
+    path,
+    analytic_fields
+) {
+  load_ext_eto_extract(
+    path = path,
+    analytic_fields = analytic_fields
+  )
+}
+
+## ===
+## Ingest complex_care_ext_pfp_housing_legacy ----
+## ===
+load_complex_care_ext_pfp_housing_legacy <- function(
     path,
     analytic_fields
 ) {
@@ -919,7 +936,79 @@ transform_complex_care_ext_mercy_utilization <- function(
 }
 
 # ===
-## 3c. Transform Referral Flow ----
+## 3c. Transform Legacy PFP Housing Data ----
+# ===
+transform_complex_care_ext_pfp_housing_legacy <- function(
+    complex_care_ext_pfp_housing_legacy
+) {
+  ext_pfp_housing_legacy <- complex_care_ext_pfp_housing_legacy |>
+    dplyr::select(
+      ecrid,
+      mrn,
+      cohort_referral_date,
+      baseline_date,
+      baseline,
+      dplyr::matches(
+        "^month_\\d{2}$"
+      )
+    ) |>
+    tidyr::pivot_longer(
+      cols = c(
+        baseline,
+        dplyr::matches(
+          "^month_\\d{2}$"
+        )
+      ),
+      names_to = "housing_period",
+      values_to = "client_housing_status",
+      values_drop_na = TRUE
+    ) |>
+    dplyr::mutate(
+      month_offset = stringr::str_remove(
+        housing_period,
+        "^month_"
+      ),
+      month_offset = dplyr::if_else(
+        housing_period == "baseline",
+        "0",
+        month_offset
+      ),
+      month_offset = as.integer(
+        month_offset
+      ),
+      housing_start_date = dplyr::if_else(
+        month_offset == 0L,
+        baseline_date,
+        lubridate::floor_date(
+          baseline_date,
+          unit = "month"
+        ) %m+%
+          lubridate::period(
+            months = month_offset
+          )
+      )
+    ) |>
+    dplyr::rename(
+      mrn_mercy = mrn,
+      added_cohort_date = cohort_referral_date
+    ) |> 
+    dplyr::select(
+      ecrid,
+      mrn_mercy,
+      added_cohort_date,
+      baseline_date,
+      housing_start_date,
+      client_housing_status
+    ) |>
+    dplyr::arrange(
+      mrn_mercy,
+      baseline_date,
+      housing_start_date
+    )
+}
+
+# ===
+## 3d. Transform Referral Flow ----
 #   - Joins event tables and initial/latest payor|housing status
 #   - Prefixes all columns except tiedenrollment
 #   - Joins "active" SCD summation tables (presconcerns) to ALL parent
@@ -928,7 +1017,8 @@ transform_complex_care_ext_mercy_utilization <- function(
 # ===
 transform_complex_care_referral_flow <- function(
     complex_care,
-    complex_care_ext_pcc_facility_lut
+    complex_care_ext_pcc_facility_lut,
+    ext_pfp_housing_legacy
 ) {
 
   ### ===
@@ -1000,7 +1090,7 @@ transform_complex_care_referral_flow <- function(
     )
 
   shelter_beds <- clean_form(
-    complex_care$complex_care_shelter_bed,
+    complex_care$complex_care_shelter_beds,
     "shelter_bed_"
   ) |>
     dplyr::rename(
@@ -1270,7 +1360,6 @@ transform_complex_care_referral_flow <- function(
     dplyr::left_join(
       eto_roster,
       by = "eto_case_num",
-      ,
       relationship = "many-to-many"
     )
   
@@ -1353,7 +1442,8 @@ transform_complex_care_referral_flow <- function(
     dplyr::select(
       mrn_mercy,
       legacy_referred_cohort_date = referred_to_cohort_date,
-      legacy_enrollment_date = enrollment_date
+      legacy_enrollment_date = enrollment_date,
+      legacy_admission_date = admission_date
     )
   
   ### ===
@@ -1405,6 +1495,10 @@ transform_complex_care_referral_flow <- function(
       benchmarks_enrollment_date = dplyr::coalesce(
         benchmarks_enrollment_date,
         legacy_enrollment_date
+      ),
+      benchmarks_complete_admission_service_date = dplyr::coalesce(
+        benchmarks_complete_admission_service_date,
+        legacy_admission_date
       )
     ) |> 
     dplyr::distinct(
@@ -1785,7 +1879,45 @@ transform_complex_care_referral_flow <- function(
     )
   
   ### ===
-  ### 25. Store the final joined referral flow table and return it. ----
+  ### 25. Attach FAMCare client fields to ext_pfp_housing_legacy
+  ### ===
+  client_map <- complex_care$pathclient |>
+    dplyr::select(
+      mrn_mercy,
+      client_number,
+      client_first,
+      client_last
+    ) |>
+    dplyr::filter(
+      !is.na(
+        mrn_mercy
+        )
+    ) |>
+    dplyr::distinct()
+  
+  ext_pfp_housing_legacy <- ext_pfp_housing_legacy |>
+    dplyr::left_join(
+      client_map,
+      by = "mrn_mercy"
+    )
+  
+  ### ===
+  ### 26. Create episode map for joining legacy housing to enrollments ----
+  ### ===
+  
+  episode_map <- complex_care$pathclient |>
+    dplyr::select(
+      client_number,
+      tiedenrollment,
+      enrollment_starting_date,
+      enrollment_ending_date,
+      imported,
+      eto_case_num
+    ) |>
+    dplyr::distinct()
+  
+  ### ===
+  ### 27. Store the final joined referral flow table and return it. ----
   ### ===
 
   output <- list(
@@ -1813,6 +1945,7 @@ transform_complex_care_referral_flow <- function(
     ext_atd_notifications = atd_temporal,
     ext_pfp_service_history = complex_care$complex_care_ext_pfp_service_history,
     ext_pfp_metrics_legacy = complex_care$complex_care_ext_pfp_metrics_legacy,
+    ext_pfp_housing_legacy = ext_pfp_housing_legacy,
     ext_pcc_facility_lut = complex_care$complex_care_ext_pcc_facility_lut,
     ext_eto_complex_care_roster = complex_care$complex_care_ext_eto_roster,
     ext_sltco_arrest_data = complex_care$complex_care_ext_stlco_arrest_data
@@ -1826,7 +1959,7 @@ transform_complex_care_referral_flow <- function(
 }
 
 # ===
-## 3d. Transform Alert Watchlist ----
+## 3e. Transform Alert Watchlist ----
 #   - builds a tibble but does not perform file writes, which are handled by
 #       {targets}
 # ===
@@ -2028,6 +2161,7 @@ run_complex_care_etl <- function(
   complex_care_ext_atd_notifications,
   complex_care_ext_pfp_service_history,
   complex_care_ext_pfp_metrics_legacy,
+  complex_care_ext_pfp_housing_legacy,
   complex_care_ext_pcc_facility_lut,
   complex_care_ext_eto_roster,
   complex_care_ext_stlco_arrest_data,
@@ -2090,6 +2224,7 @@ run_complex_care_etl <- function(
     complex_care_ext_atd_notifications = complex_care_ext_atd_notifications,
     complex_care_ext_pfp_service_history = complex_care_ext_pfp_service_history,
     complex_care_ext_pfp_metrics_legacy = complex_care_ext_pfp_metrics_legacy,
+    complex_care_ext_pfp_housing_legacy = complex_care_ext_pfp_housing_legacy,
     complex_care_ext_pcc_facility_lut = complex_care_ext_pcc_facility_lut,
     complex_care_ext_eto_roster = complex_care_ext_eto_roster,
     complex_care_ext_stlco_arrest_data = complex_care_ext_stlco_arrest_data
@@ -2104,9 +2239,15 @@ run_complex_care_etl <- function(
   # Promote pivoted pathclient to authoritative
   complex_care_raw$pathclient <- pathclient$joined_pathclient
 
+  ext_pfp_housing_legacy <-
+    transform_complex_care_ext_pfp_housing_legacy(
+      complex_care_raw$complex_care_ext_pfp_housing_legacy
+    )
+  
   referral_flow <- transform_complex_care_referral_flow(
     complex_care_raw,
-    complex_care_ext_pcc_facility_lut
+    complex_care_ext_pcc_facility_lut,
+    ext_pfp_housing_legacy
   )
 
   full <- extract_complex_care_full_data(
