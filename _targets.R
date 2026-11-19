@@ -661,6 +661,15 @@ targets::tar_target(
 ),
 
 targets::tar_target(
+  complex_care_ext_pfp_housing_legacy_file,
+  {
+    vpn_check
+    complex_care_paths$complex_care_ext_pfp_housing_legacy
+  },
+  format = "file"
+),
+
+targets::tar_target(
   complex_care_ext_eto_roster_file,
   {
     vpn_check
@@ -1478,6 +1487,14 @@ targets::tar_target(
 ),
 
 targets::tar_target(
+  complex_care_ext_pfp_housing_legacy_raw,
+  load_ext_eto_extract(
+    complex_care_ext_pfp_housing_legacy_file,
+    analytic_fields
+  )
+),
+
+targets::tar_target(
   complex_care_ext_pcc_facility_lut_raw,
   load_complex_care_ext_pcc_facility_lut(
     complex_care_ext_pcc_facility_lut_file
@@ -2016,6 +2033,11 @@ targets::tar_target(
     complex_care_ext_pfp_metrics_legacy_raw
   ),
 
+  targets::tar_target(
+    complex_care_ext_pfp_housing_legacy,
+    complex_care_ext_pfp_housing_legacy_raw
+  ),
+
   # PCC visit facility LUT target for downstream use
   targets::tar_target(
     complex_care_ext_pcc_facility_lut,
@@ -2051,13 +2073,10 @@ targets::tar_target(
 
   ### Complex Care ----
 
-  targets::tar_target(
-    complex_care_referral_flow_core,
-    transform_complex_care_referral_flow(
-      complex_care_etl$raw,
-      complex_care_ext_pcc_facility_lut # passes the pcc_facility_lut dependency
-    )
-  ),
+targets::tar_target(
+  complex_care_referral_flow_core,
+  complex_care_etl$transform$referral_flow
+),
 
   ### EPICC ----
   
@@ -2189,6 +2208,7 @@ targets::tar_target(
     complex_care_ext_pfp_service_history = 
       complex_care_ext_pfp_service_history_raw,
     complex_care_ext_pfp_metrics_legacy = complex_care_ext_pfp_metrics_legacy,
+    complex_care_ext_pfp_housing_legacy = complex_care_ext_pfp_housing_legacy,
     complex_care_ext_pcc_facility_lut = complex_care_ext_pcc_facility_lut,
     complex_care_ext_eto_roster = complex_care_ext_eto_roster,
     complex_care_ext_stlco_arrest_data = complex_care_ext_stlco_arrest_data_raw
